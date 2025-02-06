@@ -1,3 +1,9 @@
 TrackMyShuttleExtras/
 TrackMyShuttleIOT/TrackMyShuttleGPSTracker/gps_tracker_main/credentials.h
 TrackMyShuttleIOT/TrackMyShuttlle_Test_Tracker_Certs/
+.DS_Store
+TrackMyShuttleApp/TrackMyShuttleBackend/.DS_Store
+TrackMyShuttleApp/TrackMyShuttleIOT/.DS_Store
+TrackMyShuttleApp/TrackMyShuttleIOT/TrackMyShuttleGPSTracker/.DS_Store
+TrackMyShuttleApp/TrackMyShuttleIOT/TrackMyShuttleGPSTracker/gps_tracker_main/.DS_Store
+TrackMyShuttleApp/TrackMyShuttleBackend/.DS_Store
