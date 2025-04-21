@@ -14,6 +14,10 @@ import data.exceptions.UnsupportedEntityClass
 import data.exceptions.UnsupportedUpdateType
 import data.model.DynamoDbTransactWriteItem
 import data.util.*
+import data.util.BusEntityAttrUpdate.UpdateBusStatus
+import data.util.BusEntityAttrUpdate.UpdateCurrentStop
+import data.util.BusEntityAttrUpdate.UpdateNextStop
+import data.util.BusEntityAttrUpdate.UpdateStopIds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
@@ -256,29 +260,34 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         update: DynamoDbAttrUpdate,
     ): Map<String, AttributeValueUpdate> {
         return when (update) {
-            is DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateBusStatus -> convertToAttrValUpdate(
-                BusEntityAttributes.BUS_STATUS,
-                BusStatusValueConverter.convertTo(update.value),
-                update.action
-            )
+            is BusEntityAttrUpdate ->{
+                when(update){
+                    is UpdateBusStatus -> convertToAttrValUpdate(
+                        BusEntityAttributes.BUS_STATUS,
+                        BusStatusValueConverter.convertTo(update.value),
+                        update.action
+                    )
 
-            is DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateCurrentStop -> convertToAttrValUpdate(
-                BusEntityAttributes.CURRENT_STOP,
-                if(update.value!=null) AttributeValue.S("") else AttributeValue.Null(true),
-                update.action
-            )
+                    is UpdateCurrentStop -> convertToAttrValUpdate(
+                        BusEntityAttributes.CURRENT_STOP,
+                        if(update.value!=null) AttributeValue.S("") else AttributeValue.Null(true),
+                        update.action
+                    )
 
-            is DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateNextStop -> convertToAttrValUpdate(
-                BusEntityAttributes.NEXT_STOP,
-                if(update.value!=null) AttributeValue.S("") else AttributeValue.Null(true),
-                update.action
-            )
+                    is UpdateNextStop -> convertToAttrValUpdate(
+                        BusEntityAttributes.NEXT_STOP,
+                        if(update.value!=null) AttributeValue.S("") else AttributeValue.Null(true),
+                        update.action
+                    )
 
-            is DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateStopIds -> convertToAttrValUpdate(
-                BusEntityAttributes.STOP_IDS,
-                AttributeValue.Ss(update.value),
-                update.action
-            )
+                    is UpdateStopIds -> convertToAttrValUpdate(
+                        BusEntityAttributes.STOP_IDS,
+                        AttributeValue.Ss(update.value),
+                        update.action
+                    )
+                }
+            }
+            else -> throw UnsupportedUpdateType()
         }
     }
 
