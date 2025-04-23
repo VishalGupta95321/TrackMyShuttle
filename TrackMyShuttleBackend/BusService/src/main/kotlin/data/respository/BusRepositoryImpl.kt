@@ -1,9 +1,12 @@
 package data.respository
 
+import aws.sdk.kotlin.services.dynamodb.model.Get
 import data.entity.BusEntity
 import data.model.Bus
 import data.model.BusStatus
 import data.source.DynamoDbDataSource
+import data.util.BasicBusRepoResult
+import data.util.BasicDynamoDbResult
 import data.util.BusRepoResult
 import data.util.GetBackBasic
 
@@ -22,29 +25,34 @@ class BusRepositoryImpl(
         TODO("Not yet implemented")
     }
 
-    override suspend fun registerBus(bus: BusEntity): GetBackBasic {
+    override suspend fun registerBus(bus: BusEntity): BasicBusRepoResult {
         TODO("Not yet implemented")
     }
 
     override suspend fun updateBusDetails(
         busId: String,
         busData: BusEntity
-    ): GetBackBasic {
+    ): BasicBusRepoResult {
         TODO("Not yet implemented")
     }
 
-    override suspend fun deleteBus(): GetBackBasic {
+    override suspend fun deleteBus(busId: String): BasicBusRepoResult {
         TODO("Not yet implemented")
     }
 
-    override suspend fun updateBusStatus(busId: String, status: BusStatus): GetBackBasic {
+
+    override suspend fun updateBusStatus(
+        busId: String,
+        status: BusStatus
+    ): BasicBusRepoResult {
         TODO("Not yet implemented")
     }
 
     override suspend fun updateCurrentAndNextStop(
+        busId: String,
         currentBusStopId: String,
         nextBusStopId: String
-    ): GetBackBasic {
+    ): BasicBusRepoResult {
         TODO("Not yet implemented")
     }
 

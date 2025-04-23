@@ -4,8 +4,9 @@ import data.db_converters.BusItemConverter
 import data.entity.BusEntity
 import data.model.BusStatus
 import data.source.DynamoDbDataSource
+import data.util.BusEntityAttrUpdate
+import data.util.BusEntityAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
 import data.util.DynamoDbAttrUpdate
-import data.util.DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
 import data.util.GetBack
 import di.MainModule
 import kotlinx.coroutines.runBlocking
@@ -103,7 +104,7 @@ suspend fun main(){
 //        }
         source.updateItemAttr(
             // updateAction =  DynamoDbUpdateAttrActionType.Add,
-            update =  DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateStopIds(
+            update =  BusEntityAttrUpdate.UpdateStopIds(
                 value = listOf("stop1","stop2","stop3","stop4"),
                 updateAction = StopIdsUpdateAction.Add
             ),
@@ -127,7 +128,7 @@ suspend fun main(){
         }
 
         source.updateItemAttr(
-            update =  DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateStopIds(
+            update =  BusEntityAttrUpdate.UpdateStopIds(
                 listOf("stop3"),
                 StopIdsUpdateAction.Delete
             ),
@@ -142,7 +143,7 @@ suspend fun main(){
         }
 
         source.updateItemAttr(
-            update =  DynamoDbAttrUpdate.BusDataAttrUpdate.UpdateBusStatus(
+            update =  BusEntityAttrUpdate.UpdateBusStatus(
                 BusStatus.InMaintenance,
             ),
             "92374924"
