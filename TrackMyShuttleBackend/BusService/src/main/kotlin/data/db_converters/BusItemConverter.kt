@@ -2,8 +2,8 @@ package data.db_converters
 
 import aws.sdk.kotlin.services.dynamodb.model.AttributeValue
 import aws.smithy.kotlin.runtime.ExperimentalApi
-import data.entity.BusEntityAttributes
 import data.entity.BusEntity
+import data.entity.BusEntityAttributes
 
 
 class BusItemConverter : DbItemConverter<BusEntity> {

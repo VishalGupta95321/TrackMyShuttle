@@ -4,7 +4,7 @@ import aws.sdk.kotlin.hll.dynamodbmapper.values.ValueConverter
 import aws.sdk.kotlin.services.dynamodb.model.AttributeValue
 import aws.smithy.kotlin.runtime.ExperimentalApi
 import data.model.BusStatus
-import data.model.fromValue
+import data.model.BusStatus.Companion.fromValue
 import kotlin.text.toInt
 
 @OptIn(ExperimentalApi::class)

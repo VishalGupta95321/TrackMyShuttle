@@ -7,15 +7,19 @@ sealed class BusStatus(
      object InActive: BusStatus(1)
      object NotInService: BusStatus(2)
      object InMaintenance: BusStatus(3)
-}
 
-fun fromValue(value: Int): BusStatus {
-    return when (value) {
-        0 -> BusStatus.Active
-        1 -> BusStatus.InActive
-        2 -> BusStatus.NotInService
-        3 -> BusStatus.InMaintenance
-        else -> BusStatus.InActive
+    companion object {
+        fun fromValue(value: Int): BusStatus {
+            return when (value) {
+                0 -> BusStatus.Active
+                1 -> BusStatus.InActive
+                2 -> BusStatus.NotInService
+                3 -> BusStatus.InMaintenance
+                else -> BusStatus.InActive
+            }
+        }
+
     }
 }
+
 

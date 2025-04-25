@@ -7,7 +7,6 @@ import com.amazonaws.services.lambda.runtime.RequestHandler
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent
 import data.entity.BusEntity
-import data.entity.BusEntityAttributes
 import data.source.DynamoDbDataSource
 import data.util.GetBack
 import di.MainModule
@@ -188,3 +187,9 @@ class SimpleHandler : RequestHandler<Map<String, Any>, Map<String, Any>> {
 /// etc.
 
 /// check sync and async
+
+
+
+/// how to consume kafka topics in tracking module using coroutine
+/// in UI show current stop and next stop
+///

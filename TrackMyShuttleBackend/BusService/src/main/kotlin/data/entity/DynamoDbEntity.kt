@@ -1,3 +1,3 @@
 package data.entity
 
-sealed interface DynamoDbEntity
+interface DynamoDbEntity

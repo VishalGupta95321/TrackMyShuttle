@@ -29,6 +29,7 @@ val MainModule = module  {
             databaseClient = get(),
             introspector = ClassIntrospector(BusEntity::class),
             itemConverter = BusItemConverter(),
+            attributes = BusEntityAttributes,
         )
     }
 

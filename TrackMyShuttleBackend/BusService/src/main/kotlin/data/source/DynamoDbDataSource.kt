@@ -13,7 +13,10 @@ interface DynamoDbDataSource<T: DynamoDbEntity> {
         items: List<DynamoDbTransactWriteItem<T>>
     ): BasicDynamoDbResult
 
-    suspend fun putItem(item: T): BasicDynamoDbResult
+    suspend fun putItem(
+        item: T,
+        isUpsert: Boolean = false,
+    ): BasicDynamoDbResult
     suspend fun deleteItem(key: String): BasicDynamoDbResult
     suspend fun updateItemAttr(
         update: DynamoDbAttrUpdate,

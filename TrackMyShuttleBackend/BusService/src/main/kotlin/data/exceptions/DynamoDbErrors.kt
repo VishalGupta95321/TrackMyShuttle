@@ -7,5 +7,6 @@ sealed interface DynamoDbErrors {
     data object UnsupportedUpdateType: DynamoDbErrors
     data object UnsupportedEntityClass: DynamoDbErrors
     data object UnsupportedAttribute: DynamoDbErrors
-    data object ItemDoesNotExist: DynamoDbErrors
+    data object ItemDoesNotExists: DynamoDbErrors
+    data object ItemAlreadyExists: DynamoDbErrors
 }

@@ -10,6 +10,7 @@ import data.db_converters.DbItemConverter
 import data.entity.*
 import data.exceptions.DynamoDbErrors
 import data.exceptions.NoPartitionKeyFound
+import data.exceptions.NoTableNameFound
 import data.exceptions.UnsupportedEntityClass
 import data.exceptions.UnsupportedUpdateType
 import data.model.DynamoDbTransactWriteItem
@@ -19,7 +20,6 @@ import data.util.BusEntityAttrUpdate.UpdateCurrentStop
 import data.util.BusEntityAttrUpdate.UpdateNextStop
 import data.util.BusEntityAttrUpdate.UpdateStopIds
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
@@ -48,7 +48,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             response.item?.let { item ->
                 return GetBack.Success(itemConverter.deserializeToObject(item))
             }
-            return GetBack.Error(DynamoDbErrors.ItemDoesNotExist)
+            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         }catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
@@ -163,20 +163,24 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
 
     override suspend fun putItem(
-        item: T
+        item: T,
+        isUpsert: Boolean,
     ): BasicDynamoDbResult {
         val itemValues = itemConverter.serializeToAttrValue(item)
         val putRequest = PutItemRequest {
             tableName = currentTableName
             this.item = itemValues
+            conditionExpression = if(!isUpsert) "attribute_not_exists($primaryKey)" else null
         }
         try {
             databaseClient.putItem(putRequest)
             return GetBack.Success()
+        } catch (e: ConditionalCheckFailedException){
+            return GetBack.Error(DynamoDbErrors.ItemAlreadyExists)
         } catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        } catch (e: Exception) {
+        }catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -187,13 +191,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         val deleteRequest = DeleteItemRequest {
             tableName = currentTableName
             this.key = itemKey
-            conditionExpression = "attribute_exists(busId)"
+            conditionExpression = "attribute_exists($primaryKey)"
         }
         try {
             databaseClient.deleteItem(deleteRequest)
             return GetBack.Success()
         }catch (e: ConditionalCheckFailedException){
-            return GetBack.Error(DynamoDbErrors.ItemDoesNotExist)
+            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         }catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
@@ -222,11 +226,14 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
                 tableName = currentTableName
                 key = itemKey
                 attributeUpdates = attrUpdates
+                conditionExpression = "attribute_exists($primaryKey)"
             }
 
             databaseClient.updateItem(updateRequest)
             return GetBack.Success()
 
+        }catch (e: ConditionalCheckFailedException){
+            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         }catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
@@ -352,15 +359,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         }
     }
 
-    private fun getTableName(
-        entityClass: KClass<T>,
-    ): String {
-        return when (entityClass) {
-            BusEntity::class -> BUS_TABLE_NAME
-            else -> throw UnsupportedEntityClass()
-        }
-    }
-
     @OptIn(ExperimentalApi::class)
     private fun validateAttributeType(
         attrName: String,
@@ -375,16 +373,20 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             ?: throw NoPartitionKeyFound()
     }
 
-    companion object {
+    private fun getTableName(): String {
+        return introspector.getAttrNameByAnnotation<TableName>()
+            ?: throw NoTableNameFound()
+    }
 
-        const val BUS_TABLE_NAME = "BUS_TABLE"
+
+    companion object {
         const val BATCH_REQUEST_RETRY_INTERVAL = 300L
         const val MAX_GET_ITEM_BATCH_LIMIT = 80
         const val MAX_TRANS_WRITE_ITEMS_LIMIT = 80
     }
 
     init {
-        currentTableName = getTableName(clazz)
+        currentTableName = getTableName()
         primaryKey = getTablePartitionKey()
     }
 }

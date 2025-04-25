@@ -2,8 +2,7 @@ package model.request
 
 import model.BusStatusDto
 
-
-data class BusRegistrationOrUpdateRequest(
+data class BusUpdateRequest(
     val busId: String,
     val driverName: String,
     val activeHours: String,
@@ -11,4 +10,3 @@ data class BusRegistrationOrUpdateRequest(
     val busStatus: BusStatusDto,
     val stopsIds: List<String>,
 )
-
