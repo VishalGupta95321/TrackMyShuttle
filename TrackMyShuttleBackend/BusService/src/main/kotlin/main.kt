@@ -3,6 +3,8 @@ import aws.smithy.kotlin.runtime.ExperimentalApi
 import data.db_converters.BusItemConverter
 import data.entity.BusEntity
 import data.model.BusStatus
+import data.respository.BusRepository
+import data.respository.BusRepositoryImpl
 import data.source.DynamoDbDataSource
 import data.util.BusEntityAttrUpdate
 import data.util.BusEntityAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
@@ -26,6 +28,9 @@ suspend fun main(){
 
     val source : DynamoDbDataSource<BusEntity> by inject(
         clazz = DynamoDbDataSource::class.java,
+    )
+    val repo : BusRepository by inject(
+        clazz = BusRepository::class.java
     )
 
 
@@ -53,6 +58,27 @@ suspend fun main(){
                 is GetBack.Success -> { println("Sucess......")}
             }
         }
+
+        repo.registerBus(demData).also {
+            when(it){
+                is GetBack.Error -> {println("from repo error 0 ${it.message} ........")}
+                is GetBack.Success -> { println("from repo 0 ${it.data} ........")}
+            }
+        }
+
+        repo.fetchBusByBusId(demData.busId).also {
+            when(it){
+                is GetBack.Error -> {println("from repo error 1 ${it.message} ........")}
+                is GetBack.Success -> { println("from repo 1 ${it.data} ........")}
+            }
+        }
+
+        repo.updateNextStop(busId = demData.busId, nextBusStopId = "eddewed").also {
+            when(it){
+                is GetBack.Error -> {println("from repo error 2 ${it.message} ........")}
+                is GetBack.Success -> { println("from repo 2${it.data} ........")}
+            }
+        }
         source.getItemsInBatch(
             listOf("92374924","33")
         ).also {
@@ -71,14 +97,21 @@ suspend fun main(){
                 }
             }
         }
-        source.deleteItem((92374924).toString()).also {
+//        source.deleteItem((92374924).toString()).also {
+//            when(it){
+//                is GetBack.Error -> {println("Failed ........"+it.toString())}
+//                is GetBack.Success -> { println("Sucess......")
+//                    println(it.toString())
+//                }
+//            }
+//        }
+        repo.fetchBusByBusId(demData.busId).also {
             when(it){
-                is GetBack.Error -> {println("Failed ........"+it.toString())}
-                is GetBack.Success -> { println("Sucess......")
-                    println(it.toString())
-                }
+                is GetBack.Error -> {println("from repo error 3 ${it.message} ........")}
+                is GetBack.Success -> { println("from repo 3${it.data} ........")}
             }
         }
+
         source.getItem((92374924).toString()).also {
             when(it){
                 is GetBack.Error -> {println("Failed ........"+it.toString())}
@@ -127,10 +160,24 @@ suspend fun main(){
             }
         }
 
+//        source.updateItemAttr(
+//            update =  BusEntityAttrUpdate.UpdateStopIds(
+//                listOf("stop3"),
+//                StopIdsUpdateAction.Delete
+//            ),
+//            "92374924"
+//        ).also {
+//            when(it){
+//                is GetBack.Error -> {println("Failed ........"+it.toString())}
+//                is GetBack.Success -> { println("Sucess......")
+//                    println(it.toString())
+//                }
+//            }
+//        }
+//
         source.updateItemAttr(
-            update =  BusEntityAttrUpdate.UpdateStopIds(
-                listOf("stop3"),
-                StopIdsUpdateAction.Delete
+            update =  BusEntityAttrUpdate.UpdateBusStatus(
+                BusStatus.InMaintenance,
             ),
             "92374924"
         ).also {
@@ -143,8 +190,22 @@ suspend fun main(){
         }
 
         source.updateItemAttr(
-            update =  BusEntityAttrUpdate.UpdateBusStatus(
-                BusStatus.InMaintenance,
+            update =  BusEntityAttrUpdate.UpdateNextStop(
+                "dqm;lqdwqdwqdw"
+            ),
+            "92374924"
+        ).also {
+            when(it){
+                is GetBack.Error -> {println("Failed ........"+it.toString())}
+                is GetBack.Success -> { println("Sucess......")
+                    println(it.toString())
+                }
+            }
+        }
+
+        source.updateItemAttr(
+            update =  BusEntityAttrUpdate.UpdateCurrentStop(
+                "dqm;lqdwqdwqdw"
             ),
             "92374924"
         ).also {

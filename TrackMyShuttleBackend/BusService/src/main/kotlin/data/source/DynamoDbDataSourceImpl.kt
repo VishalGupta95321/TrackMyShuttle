@@ -226,7 +226,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
                 tableName = currentTableName
                 key = itemKey
                 attributeUpdates = attrUpdates
-                conditionExpression = "attribute_exists($primaryKey)"
             }
 
             databaseClient.updateItem(updateRequest)
@@ -277,13 +276,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
                     is UpdateCurrentStop -> convertToAttrValUpdate(
                         BusEntityAttributes.CURRENT_STOP,
-                        if(update.value!=null) AttributeValue.S("") else AttributeValue.Null(true),
+                        if(update.value!=null) AttributeValue.S(update.value) else AttributeValue.Null(true),
                         update.action
                     )
 
                     is UpdateNextStop -> convertToAttrValUpdate(
                         BusEntityAttributes.NEXT_STOP,
-                        if(update.value!=null) AttributeValue.S("") else AttributeValue.Null(true),
+                        if(update.value!=null) AttributeValue.S(update.value) else AttributeValue.Null(true),
                         update.action
                     )
 
@@ -374,7 +373,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
     }
 
     private fun getTableName(): String {
-        return introspector.getAttrNameByAnnotation<TableName>()
+        return introspector.getValueByAnnotation<TableName>()
             ?: throw NoTableNameFound()
     }
 

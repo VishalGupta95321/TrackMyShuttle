@@ -13,6 +13,7 @@ import data.util.BusRepoResult
 import data.util.DynamoDbAttrUpdate
 import data.util.GetBack
 
+@Suppress("UNCHECKED_CAST")
 class BusRepositoryImpl(
     private val networkDataSource: DynamoDbDataSource<BusEntity>
 ): BusRepository {
@@ -20,20 +21,15 @@ class BusRepositoryImpl(
     override suspend fun fetchBusByBusId(busId: String): BusRepoResult<Bus> {
         val result = networkDataSource.getItem(busId)
         return when (result) {
-            is GetBack.Error -> {
-                if(result.message is DynamoDbErrors.ItemDoesNotExists)
-                    GetBack.Error(BusRepoErrors.BusDoesNotExist)
-                else
-                    GetBack.Error(BusRepoErrors.SomethingWentWrong)
-            }
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success(result.data?.toBus())
-        }
+       }
     }
 
     override suspend fun fetchBusesByIds(busIds: List<String>): BusRepoResult<List<Bus>> {
         val result = networkDataSource.getItemsInBatch(busIds)
         return when (result) {
-            is GetBack.Error -> GetBack.Error(BusRepoErrors.SomethingWentWrong)
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success(result.data?.map { it.toBus() })
         }
     }
@@ -41,12 +37,7 @@ class BusRepositoryImpl(
     override suspend fun registerBus(bus: BusEntity): BasicBusRepoResult {
         val result = networkDataSource.putItem(item = bus)
         return when (result) {
-            is GetBack.Error -> {
-                if(result.message is DynamoDbErrors.ItemAlreadyExists)
-                    GetBack.Error(BusRepoErrors.BusAlreadyExists)
-                else
-                    GetBack.Error(BusRepoErrors.SomethingWentWrong)
-            }
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success() /// in the controller return the bus id after successful registration.
         }
     }
@@ -56,7 +47,7 @@ class BusRepositoryImpl(
     ): BasicBusRepoResult {
         val result = networkDataSource.putItem(item = bus, isUpsert = true)
         return when (result) {
-            is GetBack.Error -> GetBack.Error(BusRepoErrors.SomethingWentWrong)
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -64,12 +55,7 @@ class BusRepositoryImpl(
     override suspend fun deleteBus(busId: String): BasicBusRepoResult {
         val result = networkDataSource.deleteItem(busId)
         return when (result) {
-            is GetBack.Error -> {
-                if(result.message is DynamoDbErrors.ItemDoesNotExists)
-                    GetBack.Error(BusRepoErrors.BusDoesNotExist)
-                else
-                    GetBack.Error(BusRepoErrors.SomethingWentWrong)
-            }
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -83,12 +69,7 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> {
-                if(result.message is DynamoDbErrors.ItemDoesNotExists)
-                    GetBack.Error(BusRepoErrors.BusDoesNotExist)
-                else
-                    GetBack.Error(BusRepoErrors.SomethingWentWrong)
-            }
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -102,12 +83,7 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> {
-                if(result.message is DynamoDbErrors.ItemDoesNotExists)
-                    GetBack.Error(BusRepoErrors.BusDoesNotExist)
-                else
-                    GetBack.Error(BusRepoErrors.SomethingWentWrong)
-            }
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -121,26 +97,29 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> {
-                if(result.message is DynamoDbErrors.ItemDoesNotExists)
-                    GetBack.Error(BusRepoErrors.BusDoesNotExist)
-                else
-                    GetBack.Error(BusRepoErrors.SomethingWentWrong)
-            }
+            is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success()
         }
     }
 
-    private fun  validateResult (result: GetBack<*,*>): GetBack<*, BusRepoErrors>{
-        return when (result) {
-            is GetBack.Error -> {
-              when(result.message){
-                  is DynamoDbErrors.ItemDoesNotExists -> GetBack.Error(BusRepoErrors.BusDoesNotExist)
-                  is DynamoDbErrors.ItemAlreadyExists -> GetBack.Error(BusRepoErrors.BusAlreadyExists)
-                  else -> GetBack.Error(BusRepoErrors.SomethingWentWrong)
-              }
-            }
-            is GetBack.Success -> GetBack.Success(result.data)
+    private fun toBusRepoErrors(error: GetBack.Error<DynamoDbErrors>): GetBack.Error<BusRepoErrors>{
+        return when(error.message) {
+            is DynamoDbErrors.ItemDoesNotExists -> GetBack.Error(BusRepoErrors.BusDoesNotExist)
+            is DynamoDbErrors.ItemAlreadyExists ->  GetBack.Error(BusRepoErrors.BusAlreadyExists)
+            else ->  GetBack.Error(BusRepoErrors.SomethingWentWrong)
         }
     }
+
+//    private fun  validateResult (result: GetBack<*,*>): GetBack<*, BusRepoErrors>{
+//        return when (result) {
+//            is GetBack.Error -> {
+//              when(result.message){
+//                  is DynamoDbErrors.ItemDoesNotExists -> GetBack.Error(BusRepoErrors.BusDoesNotExist)
+//                  is DynamoDbErrors.ItemAlreadyExists -> GetBack.Error(BusRepoErrors.BusAlreadyExists)
+//                  else -> GetBack.Error(BusRepoErrors.SomethingWentWrong)
+//              }
+//            }
+//            is GetBack.Success -> GetBack.Success(result.data)
+//        }
+//    }
 }

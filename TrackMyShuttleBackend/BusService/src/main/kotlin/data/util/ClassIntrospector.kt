@@ -21,4 +21,13 @@ class ClassIntrospector< T: Any>(
             it.findAnnotation<T>() != null
         }?.name
     }
+
+    inline fun <reified T: Annotation> getValueByAnnotation(): String? {
+        val annotation = clazz.findAnnotation<T>()
+        return annotation?.let {
+            it::class.memberProperties.find {
+                it.name == "value"
+            }?.call(it) as? String
+        }
+    }
 }
