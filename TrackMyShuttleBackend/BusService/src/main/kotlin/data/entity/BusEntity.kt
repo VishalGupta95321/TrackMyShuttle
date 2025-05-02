@@ -11,6 +11,7 @@ private const val TABLE_NAME = "BUS_TABLE"
 data class BusEntity(
     @DynamoDbPartitionKey
     val busId: String,
+    val partitionKey: String,
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
@@ -32,6 +33,7 @@ data class BusEntity(
 
 object BusEntityAttributes {
     const val BUS_ID = "busId"
+    const val PARTITION_KEY = "partitionKey"
     const val DRIVER_NAME = "driverName"
     const val ACTIVE_HOURS = "activeHours"
     const val ACTIVE_DAYS = "activeDays"

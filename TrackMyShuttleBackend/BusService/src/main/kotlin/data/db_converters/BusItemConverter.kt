@@ -14,6 +14,7 @@ class BusItemConverter : DbItemConverter<BusEntity> {
     ): Map<String, AttributeValue> {
         return mapOf(
             BusEntityAttributes.BUS_ID to AttributeValue.S(obj.busId),
+            BusEntityAttributes.PARTITION_KEY to AttributeValue.S(obj.partitionKey),
             BusEntityAttributes.DRIVER_NAME to AttributeValue.S(obj.driverName),
             BusEntityAttributes.ACTIVE_HOURS to AttributeValue.S(obj.activeHours),
             BusEntityAttributes.ACTIVE_DAYS to AttributeValue.S(obj.activeDays),
@@ -30,6 +31,7 @@ class BusItemConverter : DbItemConverter<BusEntity> {
     ): BusEntity {
         return BusEntity(
             busId = attrValues[BusEntityAttributes.BUS_ID]?.asS() ?: throw IllegalArgumentException("Missing busId"),
+            partitionKey = attrValues[BusEntityAttributes.PARTITION_KEY]?.asS() ?: throw IllegalArgumentException("Missing partitionKey"),
             driverName = attrValues[BusEntityAttributes.DRIVER_NAME]?.asS() ?: "",
             activeHours = attrValues[BusEntityAttributes.ACTIVE_HOURS]?.asS() ?: "",
             activeDays = attrValues[BusEntityAttributes.ACTIVE_DAYS]?.asS() ?: "",
