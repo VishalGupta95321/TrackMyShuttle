@@ -6,14 +6,14 @@ import data.exceptions.DynamoDbErrors
 import data.model.Bus
 import data.model.BusStatus
 import data.model.BusStatus.Companion.fromValue
+import data.model.toBusEntity
 import data.source.DynamoDbDataSource
 import data.util.BasicBusRepoResult
 import data.util.BusEntityAttrUpdate
 import data.util.BusRepoResult
-import data.util.DynamoDbAttrUpdate
 import data.util.GetBack
+import kotlin.math.abs
 
-@Suppress("UNCHECKED_CAST")
 class BusRepositoryImpl(
     private val networkDataSource: DynamoDbDataSource<BusEntity>
 ): BusRepository {
@@ -34,8 +34,11 @@ class BusRepositoryImpl(
         }
     }
 
-    override suspend fun registerBus(bus: BusEntity): BasicBusRepoResult {
-        val result = networkDataSource.putItem(item = bus)
+    override suspend fun registerBus(bus: Bus): BasicBusRepoResult {
+        val partitionKey = extractPartitionKeyFromBusId(bus.busId)
+            ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
+
+        val result = networkDataSource.putItem(item = bus.toBusEntity(partitionKey.toString()))
         return when (result) {
             is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success() /// in the controller return the bus id after successful registration.
@@ -43,9 +46,11 @@ class BusRepositoryImpl(
     }
 
     override suspend fun updateBusDetails(
-        bus: BusEntity
+        bus: Bus
     ): BasicBusRepoResult {
-        val result = networkDataSource.putItem(item = bus, isUpsert = true)
+        val partitionKey = extractPartitionKeyFromBusId(bus.busId)
+            ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
+        val result = networkDataSource.putItem(item = bus.toBusEntity(partitionKey.toString()), isUpsert = true)
         return when (result) {
             is GetBack.Error -> toBusRepoErrors(result)
             is GetBack.Success -> GetBack.Success()
@@ -110,16 +115,13 @@ class BusRepositoryImpl(
         }
     }
 
-//    private fun  validateResult (result: GetBack<*,*>): GetBack<*, BusRepoErrors>{
-//        return when (result) {
-//            is GetBack.Error -> {
-//              when(result.message){
-//                  is DynamoDbErrors.ItemDoesNotExists -> GetBack.Error(BusRepoErrors.BusDoesNotExist)
-//                  is DynamoDbErrors.ItemAlreadyExists -> GetBack.Error(BusRepoErrors.BusAlreadyExists)
-//                  else -> GetBack.Error(BusRepoErrors.SomethingWentWrong)
-//              }
-//            }
-//            is GetBack.Success -> GetBack.Success(result.data)
-//        }
-//    }
+    private fun extractPartitionKeyFromBusId(
+        busId: String
+    ): Int? {
+        busId.takeLast(3).let {
+           return it.toIntOrNull()?.let {
+               if(it <= 1000) abs(it) else null
+           }
+        }
+    }
 }

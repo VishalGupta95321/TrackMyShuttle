@@ -15,8 +15,8 @@ data class BusEntity(
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
-    val busStatus: BusStatus?,
     val stopIds: List<String>,
+    val busStatus: BusStatus?,
     val currentStop: String?,
     val nextStop: String?,
 ) : DynamoDbEntity {
@@ -28,6 +28,7 @@ data class BusEntity(
         busStatus = busStatus,
         nextStop = nextStop,
         currentStop = currentStop,
+        stopIds = stopIds,
     )
 }
 
