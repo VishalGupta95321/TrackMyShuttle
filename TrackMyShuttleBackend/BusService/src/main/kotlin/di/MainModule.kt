@@ -2,6 +2,8 @@ package di
 
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
 import com.google.gson.Gson
+import controller.BusController
+import controller.BusControllerImpl
 import data.db_converters.BusItemConverter
 import data.entity.BusEntity
 import data.respository.BusRepository
@@ -36,6 +38,9 @@ val MainModule = module  {
         BusRepositoryImpl(get())
     }
 
+    single<BusController>{
+        BusControllerImpl(get())
+    }
 
     single<CoroutineScope>() {
         named("IOSupervisorCoroutineScope")
