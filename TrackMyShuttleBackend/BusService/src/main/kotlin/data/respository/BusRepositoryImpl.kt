@@ -10,6 +10,7 @@ import data.model.toBusEntity
 import data.source.DynamoDbDataSource
 import data.util.BasicBusRepoResult
 import data.util.BusEntityAttrUpdate
+import data.util.BusEntityAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
 import data.util.BusRepoResult
 import data.util.GetBack
 import kotlin.math.abs
@@ -21,7 +22,7 @@ class BusRepositoryImpl(
     override suspend fun fetchBusByBusId(busId: String): BusRepoResult<Bus> {
         val result = networkDataSource.getItem(busId)
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success(result.data?.toBus())
        }
     }
@@ -29,7 +30,7 @@ class BusRepositoryImpl(
     override suspend fun fetchBusesByIds(busIds: List<String>): BusRepoResult<List<Bus>> {
         val result = networkDataSource.getItemsInBatch(busIds)
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success(result.data?.map { it.toBus() })
         }
     }
@@ -40,7 +41,7 @@ class BusRepositoryImpl(
 
         val result = networkDataSource.putItem(item = bus.toBusEntity(partitionKey.toString()))
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success() /// in the controller return the bus id after successful registration.
         }
     }
@@ -52,7 +53,7 @@ class BusRepositoryImpl(
             ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
         val result = networkDataSource.putItem(item = bus.toBusEntity(partitionKey.toString()), isUpsert = true)
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -60,7 +61,7 @@ class BusRepositoryImpl(
     override suspend fun deleteBus(busId: String): BasicBusRepoResult {
         val result = networkDataSource.deleteItem(busId)
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -74,7 +75,7 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -88,7 +89,7 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -102,13 +103,31 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> toBusRepoErrors(result)
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
         }
     }
 
-    private fun toBusRepoErrors(error: GetBack.Error<DynamoDbErrors>): GetBack.Error<BusRepoErrors>{
-        return when(error.message) {
+    override suspend fun updateStopIds(
+        busId: String,
+        stopIds: List<String>,
+        updateAction: StopIdsUpdateAction
+    ): BasicBusRepoResult {
+        val result = networkDataSource.updateItemAttr(
+            update = BusEntityAttrUpdate.UpdateStopIds(
+                value = stopIds,
+                updateAction = updateAction
+            ),
+            keyVal = busId
+        )
+        return when (result) {
+            is GetBack.Error -> result.toBusRepoErrors()
+            is GetBack.Success -> GetBack.Success()
+        }
+    }
+
+    private fun GetBack.Error<DynamoDbErrors>.toBusRepoErrors(): GetBack.Error<BusRepoErrors>{
+        return when(message) {
             is DynamoDbErrors.ItemDoesNotExists -> GetBack.Error(BusRepoErrors.BusDoesNotExist)
             is DynamoDbErrors.ItemAlreadyExists ->  GetBack.Error(BusRepoErrors.BusAlreadyExists)
             else ->  GetBack.Error(BusRepoErrors.SomethingWentWrong)

@@ -11,11 +11,11 @@ sealed class BusStatus(
     companion object {
         fun fromValue(value: Int): BusStatus {
             return when (value) {
-                0 -> BusStatus.Active
-                1 -> BusStatus.InActive
-                2 -> BusStatus.NotInService
-                3 -> BusStatus.InMaintenance
-                else -> BusStatus.InActive
+                0 -> Active
+                1 -> InActive
+                2 -> NotInService
+                3 -> InMaintenance
+                else -> InActive
             }
         }
 

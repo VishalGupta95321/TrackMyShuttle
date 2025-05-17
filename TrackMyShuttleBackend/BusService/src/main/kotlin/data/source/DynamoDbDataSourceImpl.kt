@@ -128,6 +128,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
         if (items.size >= MAX_TRANS_WRITE_ITEMS_LIMIT) return GetBack.Error(DynamoDbErrors.MaxTransWriteItemsExceeded)
 
+
         val transactionWriteItems = items.map { item ->
             TransactWriteItem {
                 put = item.putItem?.let {
@@ -176,6 +177,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             databaseClient.putItem(putRequest)
             return GetBack.Success()
         } catch (e: ConditionalCheckFailedException){
+            e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemAlreadyExists)
         } catch (e: DynamoDbException){
             e.printStackTrace()
@@ -197,6 +199,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             databaseClient.deleteItem(deleteRequest)
             return GetBack.Success()
         }catch (e: ConditionalCheckFailedException){
+            e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         }catch (e: DynamoDbException){
             e.printStackTrace()
@@ -225,6 +228,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             val updateRequest = UpdateItemRequest {
                 tableName = currentTableName
                 key = itemKey
+                //conditionExpression = "attribute_exists($primaryKey)" TODO("")
                 attributeUpdates = attrUpdates
             }
 
@@ -232,6 +236,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             return GetBack.Success()
 
         }catch (e: ConditionalCheckFailedException){
+            e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         }catch (e: DynamoDbException){
             e.printStackTrace()

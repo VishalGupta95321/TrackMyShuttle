@@ -4,6 +4,7 @@ import data.entity.BusEntity
 import data.model.Bus
 import data.model.BusStatus
 import data.util.BasicBusRepoResult
+import data.util.BusEntityAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
 import data.util.BusRepoResult
 import data.util.GetBackBasic
 
@@ -27,6 +28,8 @@ interface BusRepository {
     suspend fun updateCurrentStop(busId: String, currentBusStopId: String): BasicBusRepoResult
 
     suspend fun updateNextStop(busId: String,nextBusStopId: String): BasicBusRepoResult
+
+    suspend fun updateStopIds(busId: String, stopIds: List<String>,  updateAction: StopIdsUpdateAction): BasicBusRepoResult
 
 }
 
