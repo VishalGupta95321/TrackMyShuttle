@@ -28,7 +28,7 @@ data class BusEntity(
         busStatus = busStatus,
         nextStop = nextStop,
         currentStop = currentStop,
-        stopIds = stopIds,
+        stopIds = stopIds ?: emptyList(),
     )
 }
 

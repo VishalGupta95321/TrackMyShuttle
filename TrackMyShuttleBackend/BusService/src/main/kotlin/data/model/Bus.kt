@@ -22,7 +22,7 @@ fun Bus.toBusEntity(
     activeHours = activeHours,
     activeDays = activeDays,
     busStatus = busStatus,
-    stopIds = stopIds,
+    stopIds = null,
     currentStop = currentStop,
     nextStop = nextStop,
     )
