@@ -15,7 +15,7 @@ data class BusEntity(
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
-    val stopIds: List<String>? = null,
+    val stopIds: List<String>? = emptyList(),
     val busStatus: BusStatus?,
     val currentStop: String?,
     val nextStop: String?,

@@ -171,13 +171,14 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         val putRequest = PutItemRequest {
             tableName = currentTableName
             this.item = itemValues
-            conditionExpression = if(!isUpsert) "attribute_not_exists($primaryKey)" else null
+            conditionExpression = if(isUpsert) "attribute_exists($primaryKey)" else null
         }
         try {
             databaseClient.putItem(putRequest)
             return GetBack.Success()
         } catch (e: ConditionalCheckFailedException){
             e.printStackTrace()
+            if(isUpsert) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
             return GetBack.Error(DynamoDbErrors.ItemAlreadyExists)
         } catch (e: DynamoDbException){
             e.printStackTrace()
@@ -219,6 +220,12 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
         val itemKey = convertToItemKey(keyVal)
 
+        val isBusExists = getItem(keyVal).let { result ->
+            result is GetBack.Success
+        }
+
+        if (!isBusExists) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+
         try {
             val attrUpdates = when (clazz) {
                 BusEntity::class -> convertBusDataToAttrValUpdate(update)
@@ -238,8 +245,11 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         }catch (e: ConditionalCheckFailedException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
-        }catch (e: DynamoDbException){
+        } catch (e: DynamoDbException){
             e.printStackTrace()
+            if(e.localizedMessage == "Type mismatch for attribute to update")
+                return GetBack.Error(DynamoDbErrors.TypeMismatchForAttribute)
+
             return GetBack.Error(DynamoDbErrors.UndefinedError)
         }catch (e: UnsupportedEntityClass){
             e.printStackTrace()

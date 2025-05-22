@@ -8,6 +8,6 @@ sealed class BusControllerExceptions(
     data object SomethingWentWrong : BusControllerExceptions("Something went wrong")
     data object InvalidInput : BusControllerExceptions("Invalid input")
     data object ItemNotFound : BusControllerExceptions("Bus Not found")
-    data object ItemAlreadyExists : BusControllerExceptions(" Bua already exists")
+    data object ItemAlreadyExists : BusControllerExceptions(" Bus already exists")
     data object RegistrationError  : BusControllerExceptions("Registration failed, our bad! Try again later.")
 }

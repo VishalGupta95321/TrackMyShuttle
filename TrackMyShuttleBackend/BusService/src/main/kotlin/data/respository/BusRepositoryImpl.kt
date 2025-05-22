@@ -121,7 +121,12 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> result.toBusRepoErrors()
+            is GetBack.Error -> {
+                if (result.message is DynamoDbErrors.TypeMismatchForAttribute){
+                    println("Came here once")
+                    updateStopIds(busId, stopIds, StopIdsUpdateAction.Put)
+                } else result.toBusRepoErrors()
+            }
             is GetBack.Success -> GetBack.Success()
         }
     }
@@ -137,7 +142,7 @@ class BusRepositoryImpl(
     private fun extractPartitionKeyFromBusId(
         busId: String
     ): Int? {
-        busId.takeLast(3).let {
+        busId.takeLast(4).let {
            return it.toIntOrNull()?.let {
                if(it <= 1000) abs(it) else null
            }

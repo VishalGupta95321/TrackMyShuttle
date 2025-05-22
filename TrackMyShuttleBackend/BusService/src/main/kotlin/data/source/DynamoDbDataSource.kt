@@ -22,6 +22,7 @@ interface DynamoDbDataSource<T: DynamoDbEntity> {
         update: DynamoDbAttrUpdate,
         keyVal: String
     ): BasicDynamoDbResult
+
 }
 
 

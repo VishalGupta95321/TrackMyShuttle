@@ -37,7 +37,7 @@ class BusItemConverter : DbItemConverter<BusEntity> {
             activeHours = attrValues[BusEntityAttributes.ACTIVE_HOURS]?.asS() ?: "",
             activeDays = attrValues[BusEntityAttributes.ACTIVE_DAYS]?.asS() ?: "",
             busStatus = attrValues[BusEntityAttributes.BUS_STATUS]?.let { BusStatusValueConverter.convertFrom(it) },
-            stopIds = attrValues[BusEntityAttributes.STOP_IDS]?.asSs() ?: listOf(),
+            stopIds = attrValues[BusEntityAttributes.STOP_IDS]?.asSsOrNull(),// asSs() ?: listOf(),
             currentStop = attrValues[BusEntityAttributes.CURRENT_STOP]?.asSOrNull(),
             nextStop =  attrValues[BusEntityAttributes.NEXT_STOP]?.asSOrNull(),
         )
