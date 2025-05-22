@@ -7,11 +7,12 @@ data class HttpResponse<T>(
     val body: T? = null,
 )
 
-// TODO("Later use the appropriate http error code but for now lets stick with just these three")
+// TODO("Later use the appropriate http error code but for now lets stick with just these four")
 object HttpStatusCode{
     const val OK = "200"
     const val BAD_REQUEST = "400"
     const val INTERNAL_SERVER_ERROR = "500"
+    const val NOT_FOUND = "404"
 }
 
 
@@ -23,7 +24,7 @@ fun <T> generateHttpResponse(response: BusControllerResponse<T>): HttpResponse<T
                 BusControllerExceptions.SomethingWentWrong -> HttpResponse(code = HttpStatusCode.INTERNAL_SERVER_ERROR)
                 BusControllerExceptions.InvalidInput -> HttpResponse(code = HttpStatusCode.BAD_REQUEST)
                 BusControllerExceptions.ItemAlreadyExists -> HttpResponse(code = HttpStatusCode.BAD_REQUEST)
-                BusControllerExceptions.ItemNotFound -> HttpResponse(code = HttpStatusCode.BAD_REQUEST)
+                BusControllerExceptions.ItemNotFound -> HttpResponse(code = HttpStatusCode.NOT_FOUND)
                 BusControllerExceptions.RegistrationError -> HttpResponse(code = HttpStatusCode.INTERNAL_SERVER_ERROR)
             }
         }
