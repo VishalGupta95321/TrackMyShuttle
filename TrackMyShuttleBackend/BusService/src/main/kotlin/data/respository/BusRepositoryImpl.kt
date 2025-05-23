@@ -16,11 +16,11 @@ import data.util.GetBack
 import kotlin.math.abs
 
 class BusRepositoryImpl(
-    private val networkDataSource: DynamoDbDataSource<BusEntity>
+    private val dynamoDbSource: DynamoDbDataSource<BusEntity>
 ): BusRepository {
 
     override suspend fun fetchBusByBusId(busId: String): BusRepoResult<Bus> {
-        val result = networkDataSource.getItem(busId)
+        val result = dynamoDbSource.getItem(busId)
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success(result.data?.toBus())
@@ -28,7 +28,7 @@ class BusRepositoryImpl(
     }
 
     override suspend fun fetchBusesByIds(busIds: List<String>): BusRepoResult<List<Bus>> {
-        val result = networkDataSource.getItemsInBatch(busIds)
+        val result = dynamoDbSource.getItemsInBatch(busIds)
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success(result.data?.map { it.toBus() })
@@ -39,7 +39,7 @@ class BusRepositoryImpl(
         val partitionKey = extractPartitionKeyFromBusId(bus.busId)
             ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
 
-        val result = networkDataSource.putItem(item = bus.toBusEntity(partitionKey.toString()))
+        val result = dynamoDbSource.putItem(item = bus.toBusEntity(partitionKey.toString()))
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success() /// in the controller return the bus id after successful registration.
@@ -51,7 +51,7 @@ class BusRepositoryImpl(
     ): BasicBusRepoResult {
         val partitionKey = extractPartitionKeyFromBusId(bus.busId)
             ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
-        val result = networkDataSource.putItem(item = bus.toBusEntity(partitionKey.toString()), isUpsert = true)
+        val result = dynamoDbSource.putItem(item = bus.toBusEntity(partitionKey.toString()), isUpsert = true)
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
@@ -59,7 +59,7 @@ class BusRepositoryImpl(
     }
 
     override suspend fun deleteBus(busId: String): BasicBusRepoResult {
-        val result = networkDataSource.deleteItem(busId)
+        val result = dynamoDbSource.deleteItem(busId)
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
@@ -70,7 +70,7 @@ class BusRepositoryImpl(
         busId: String,
         status: BusStatus
     ): BasicBusRepoResult {
-        val result = networkDataSource.updateItemAttr(
+        val result = dynamoDbSource.updateItemAttr(
             update = BusEntityAttrUpdate.UpdateBusStatus(fromValue(status.value)),
             keyVal = busId
         )
@@ -84,7 +84,7 @@ class BusRepositoryImpl(
         busId: String,
         currentBusStopId: String
     ): BasicBusRepoResult {
-        val result = networkDataSource.updateItemAttr(
+        val result = dynamoDbSource.updateItemAttr(
             update = BusEntityAttrUpdate.UpdateCurrentStop(currentBusStopId),  // TODO maybe change with just name or full stop info like name and id
             keyVal = busId
         )
@@ -98,7 +98,7 @@ class BusRepositoryImpl(
         busId: String,
         nextBusStopId: String
     ): BasicBusRepoResult {
-        val result = networkDataSource.updateItemAttr(
+        val result = dynamoDbSource.updateItemAttr(
             update = BusEntityAttrUpdate.UpdateNextStop(nextBusStopId),
             keyVal = busId
         )
@@ -113,7 +113,7 @@ class BusRepositoryImpl(
         stopIds: List<String>,
         updateAction: StopIdsUpdateAction
     ): BasicBusRepoResult {
-        val result = networkDataSource.updateItemAttr(
+        val result = dynamoDbSource.updateItemAttr(
             update = BusEntityAttrUpdate.UpdateStopIds(
                 value = stopIds,
                 updateAction = updateAction

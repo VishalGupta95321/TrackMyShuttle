@@ -5,7 +5,6 @@ import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
 import aws.sdk.kotlin.services.dynamodb.model.*
 import aws.sdk.kotlin.services.dynamodb.waiters.waitUntilTableExists
 import aws.smithy.kotlin.runtime.ExperimentalApi
-import data.db_converters.BusStatusValueConverter
 import data.db_converters.DbItemConverter
 import data.entity.*
 import data.exceptions.DynamoDbErrors
@@ -15,12 +14,8 @@ import data.exceptions.UnsupportedEntityClass
 import data.exceptions.UnsupportedUpdateType
 import data.model.DynamoDbTransactWriteItem
 import data.util.*
-import data.util.BusEntityAttrUpdate.UpdateBusStatus
-import data.util.BusEntityAttrUpdate.UpdateCurrentStop
-import data.util.BusEntityAttrUpdate.UpdateNextStop
-import data.util.BusEntityAttrUpdate.UpdateStopIds
 import kotlinx.coroutines.delay
-import kotlin.collections.chunked
+import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
@@ -50,10 +45,10 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
                 return GetBack.Success(itemConverter.deserializeToObject(item))
             }
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
-        }catch (e: DynamoDbException){
+        } catch (e: DynamoDbException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -70,12 +65,11 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
                 println("chunks: $chunks")
                 processedItems.addAll(processGetItemBatchRequest(createBatchGetItemRequest(chunks)))
             }
-        }catch (e: DynamoDbException){
+        } catch (e: DynamoDbException) {
             println("From db exec")
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             println("From exec")
             e.printStackTrace()
             return GetBack.Error()
@@ -83,7 +77,8 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         return GetBack.Success(processedItems)
     }
 
-    private fun createBatchGetItemRequest( /// TODO this is throwing the error TODO *Fixed
+    private fun createBatchGetItemRequest(
+        /// TODO this is throwing the error TODO *Fixed
         itemKeys: List<Map<String, AttributeValue>>,
     ): BatchGetItemRequest {
         return BatchGetItemRequest {
@@ -106,7 +101,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             val response = databaseClient.batchGetItem(batchRequest)
 
             response.responses?.get(currentTableName)?.let { items ->
-                processedItems.addAll( items.map { item ->
+                processedItems.addAll(items.map { item ->
                     itemConverter.deserializeToObject(item) //as T
                 })
             }
@@ -122,9 +117,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         return processedItems
     }
 
-
-    ////////
-
     override suspend fun transactWriteItems(
         items: List<DynamoDbTransactWriteItem<T>>
     ): BasicDynamoDbResult {
@@ -133,7 +125,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
         try {
             itemChunks.forEach { chunk ->
-                val transactionWriteItems =  chunk.map { item ->
+                val transactionWriteItems = chunk.map { item ->
                     TransactWriteItem {
                         put = item.putItem?.let {
                             Put {
@@ -154,7 +146,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
                 processTransactWriteItemsRequest(createTransactWriteItemsRequest(transactionWriteItems))
             }
             return GetBack.Success()
-        } catch (e: DynamoDbException){
+        } catch (e: DynamoDbException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
         } catch (e: Exception) {
@@ -165,57 +157,15 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
     private fun createTransactWriteItemsRequest(
         items: List<TransactWriteItem>
-    ):TransactWriteItemsRequest{
-        return TransactWriteItemsRequest { transactItems = items}
+    ): TransactWriteItemsRequest {
+        return TransactWriteItemsRequest { transactItems = items }
     }
 
     private suspend fun processTransactWriteItemsRequest(
         transactRequest: TransactWriteItemsRequest,
-    ){
+    ) {
         databaseClient.transactWriteItems(transactRequest)
     }
-
-//    override suspend fun transactWriteItems(
-//        items: List<DynamoDbTransactWriteItem<T>>
-//    ): BasicDynamoDbResult {
-//
-//
-//        if (items.size >= MAX_TRANS_WRITE_ITEMS_LIMIT) return GetBack.Error(DynamoDbErrors.MaxTransWriteItemsExceeded)
-//
-//
-//        val transactionWriteItems = items.map { item ->
-//            TransactWriteItem {
-//                put = item.putItem?.let {
-//                    Put {
-//                        tableName = currentTableName
-//                        this.item = itemConverter.serializeToAttrValue(it)
-//                    }
-//                }
-//                delete = item.deleteItemKey?.let {
-//                    Delete {
-//                        tableName = currentTableName
-//                        key = convertToItemKey(item.deleteItemKey)
-//                    }
-//                }
-//            }
-//        }
-//
-//        val transactionWriteRequest = TransactWriteItemsRequest {
-//            transactItems = transactionWriteItems
-//        }
-//
-//        try {
-//            databaseClient.transactWriteItems(transactionWriteRequest)
-//            return GetBack.Success()
-//        } catch (e: DynamoDbException){
-//            e.printStackTrace()
-//            return GetBack.Error(DynamoDbErrors.UndefinedError)
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//            return GetBack.Error()
-//        }
-//    }
-
 
     override suspend fun putItem(
         item: T,
@@ -225,19 +175,19 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         val putRequest = PutItemRequest {
             tableName = currentTableName
             this.item = itemValues
-            conditionExpression = if(isUpsert) "attribute_exists($primaryKey)" else null
+            conditionExpression = if (isUpsert) "attribute_exists($primaryKey)" else null
         }
         try {
             databaseClient.putItem(putRequest)
             return GetBack.Success()
-        } catch (e: ConditionalCheckFailedException){
+        } catch (e: ConditionalCheckFailedException) {
             e.printStackTrace()
-            if(isUpsert) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+            if (isUpsert) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
             return GetBack.Error(DynamoDbErrors.ItemAlreadyExists)
-        } catch (e: DynamoDbException){
+        } catch (e: DynamoDbException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -253,13 +203,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         try {
             databaseClient.deleteItem(deleteRequest)
             return GetBack.Success()
-        }catch (e: ConditionalCheckFailedException){
+        } catch (e: ConditionalCheckFailedException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
-        }catch (e: DynamoDbException){
+        } catch (e: DynamoDbException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -282,7 +232,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
         try {
             val attrUpdates = when (clazz) {
-                BusEntity::class -> convertToAttrValUpdate(update)
+                BusStopEntity::class -> convertToAttrValUpdate(update)
                 else -> throw UnsupportedEntityClass()
             }
 
@@ -296,22 +246,22 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
             databaseClient.updateItem(updateRequest)
             return GetBack.Success()
 
-        }catch (e: ConditionalCheckFailedException){
+        } catch (e: ConditionalCheckFailedException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
-        } catch (e: DynamoDbException){
+        } catch (e: DynamoDbException) {
             e.printStackTrace()
-            if(e.localizedMessage == "Type mismatch for attribute to update")
+            if (e.localizedMessage == "Type mismatch for attribute to update")
                 return GetBack.Error(DynamoDbErrors.TypeMismatchForAttribute)
 
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        }catch (e: UnsupportedEntityClass){
+        } catch (e: UnsupportedEntityClass) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UnsupportedEntityClass)
-        }catch (e: UnsupportedUpdateType){
+        } catch (e: UnsupportedUpdateType) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
         }
     }
@@ -335,37 +285,16 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         update: DynamoDbAttrUpdate,
     ): Map<String, AttributeValueUpdate> {
         return when (update) {
-            is BusEntityAttrUpdate ->{
-                when(update){
-                    is UpdateBusStatus -> convertToAttrValUpdate(
-                        BusEntityAttributes.BUS_STATUS,
-                        BusStatusValueConverter.convertTo(update.value),
-                        update.action
-                    )
-
-                    is UpdateCurrentStop -> convertToAttrValUpdate(
-                        BusEntityAttributes.CURRENT_STOP,
-                        if(update.value!=null) AttributeValue.S(update.value) else AttributeValue.Null(true),
-                        update.action
-                    )
-
-                    is UpdateNextStop -> convertToAttrValUpdate(
-                        BusEntityAttributes.NEXT_STOP,
-                        if(update.value!=null) AttributeValue.S(update.value) else AttributeValue.Null(true),
-                        update.action
-                    )
-
-                    is UpdateStopIds -> convertToAttrValUpdate(
-                        BusEntityAttributes.STOP_IDS,
-                        AttributeValue.Ss(update.value),
-                        update.action
-                    )
+            is BusStopEntityAttrUpdate -> {
+                when (update) {
+                    /// rest of the branches
+                    else -> throw UnsupportedUpdateType()
                 }
             }
+
             else -> throw UnsupportedUpdateType()
         }
     }
-
 
 
     private fun convertToItemKey(
@@ -422,7 +351,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
                 return it == tableName
             }
             return false
-        }catch (e: Exception) {
+        } catch (e: Exception) {
             return false
         }
     }
