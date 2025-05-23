@@ -4,15 +4,17 @@ import data.entity.BusStopEntity
 import data.exceptions.BusStopRepoErrors
 import data.exceptions.DynamoDbErrors
 import data.model.BusStop
+import data.model.BusStopScanned
 import data.model.DynamoDbTransactWriteItem
 import data.model.toBusStopEntity
 import data.source.DynamoDbDataSource
 import data.util.BasicBusStopRepoResult
 import data.util.BusStopRepoResult
+import data.util.BusStopScanRequest
 import data.util.GetBack
 
 class BusStopRepositoryImpl(
-    private val dynamoDbSource: DynamoDbDataSource<BusStopEntity>
+    private val dynamoDbSource: DynamoDbDataSource<BusStopEntity, BusStopScanned>
 ): BusStopRepository {
     override suspend fun addBusStop(stop: BusStop): BasicBusStopRepoResult {
         val result = dynamoDbSource.putItem(item = stop.toBusStopEntity())
@@ -70,6 +72,18 @@ class BusStopRepositoryImpl(
         return when (result) {
             is GetBack.Error -> result.toBusStopRepoErrors()
             is GetBack.Success -> GetBack.Success(result.data?.map { it.toBusStop() })
+        }
+    }
+
+    override suspend fun fetchBusStopsByAddressSubstring(
+        substring: String,
+    ): BusStopRepoResult<List<BusStopScanned>> {
+        val result = dynamoDbSource.scanItemsBySubstring (
+            BusStopScanRequest.ScanAddress(substring)
+        )
+        return when (result) {
+            is GetBack.Error -> result.toBusStopRepoErrors()
+            is GetBack.Success -> GetBack.Success(result.data)
         }
     }
 

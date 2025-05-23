@@ -1,12 +1,14 @@
 package data.source
 
-import data.entity.DynamoDbEntity
+import aws.sdk.kotlin.services.dynamodb.model.AttributeValue
+import data.entity.DynamoDbModel
 import data.model.DynamoDbTransactWriteItem
 import data.util.BasicDynamoDbResult
 import data.util.DynamoDbAttrUpdate
 import data.util.DynamoDbResult
+import data.util.DynamoDbScanRequest
 
-interface DynamoDbDataSource<T: DynamoDbEntity> {
+interface DynamoDbDataSource<T: DynamoDbModel, F: DynamoDbModel> {
     suspend fun getItem(key: String): DynamoDbResult<T>
     suspend fun getItemsInBatch(keys: List<String>): DynamoDbResult<List<T>>
     suspend fun transactWriteItems(
@@ -23,6 +25,7 @@ interface DynamoDbDataSource<T: DynamoDbEntity> {
         keyVal: String
     ): BasicDynamoDbResult
 
+    suspend fun scanItemsBySubstring(request: DynamoDbScanRequest): DynamoDbResult<List<F>?>
 }
 
 

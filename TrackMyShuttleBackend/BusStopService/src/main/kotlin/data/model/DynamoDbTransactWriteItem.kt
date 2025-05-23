@@ -1,9 +1,8 @@
 package data.model
 
-import data.entity.DynamoDbEntity
-import data.util.DynamoDbAttrUpdate
+import data.entity.DynamoDbModel
 
-data class  DynamoDbTransactWriteItem <T: DynamoDbEntity>(
+data class  DynamoDbTransactWriteItem <T: DynamoDbModel>(
     val putItem: T?,
     val deleteItemKey: String?,
     //val updateAttribute: Pair<String,DynamoDbAttrUpdate>?

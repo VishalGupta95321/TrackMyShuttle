@@ -5,11 +5,15 @@ import data.respository.BusStopRepository
 import data.util.GetBack
 import exceptions.BusStopControllerExceptions
 import model.request.AddBusStopRequest
+import model.request.GetBusStopsByAddressSubstringRequest
 import model.request.UpdateBusStopRequest
 import model.response.BasicBusStopControllerResponse
 import model.response.BusStopControllerResponse
 import model.response.BusStopDto.Companion.fromBusStop
 import model.response.BusStopResponse
+import model.response.BusStopScannedDto
+import model.response.BusStopScannedDto.Companion.fromBusStopScanned
+import model.response.BusStopScannedResponse
 import model.response.BusStopsResponse
 
 class BusStopControllerImpl(
@@ -40,6 +44,24 @@ class BusStopControllerImpl(
             )
             is GetBack.Error -> result.toBusStopControllerErrors()
         }
+    }
+
+    override suspend fun getBusStopsByAddressSubstring(
+        request: GetBusStopsByAddressSubstringRequest
+    ): BusStopControllerResponse<BusStopScannedResponse> {
+       if(request.subString.isBlank()) return BusStopControllerResponse.Error(BusStopControllerExceptions.InvalidInput)
+
+        val result = busStopRepository.fetchBusStopsByAddressSubstring(request.subString)
+        return when(result) {
+            is GetBack.Success -> {
+                val buses = result.data?.map { fromBusStopScanned(it) }
+                BusStopControllerResponse.Success(
+                    BusStopScannedResponse(buses)
+                )
+            }
+            is GetBack.Error -> result.toBusStopControllerErrors()
+        }
+
     }
 
     override suspend fun deleteBusStop(stopIds: List<String>): BasicBusStopControllerResponse {

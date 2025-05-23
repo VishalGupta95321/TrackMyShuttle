@@ -1,12 +1,12 @@
 package data.source
 
-import data.entity.DynamoDbEntity
+import data.entity.DynamoDbModel
 import data.model.DynamoDbTransactWriteItem
 import data.util.BasicDynamoDbResult
 import data.util.DynamoDbAttrUpdate
 import data.util.DynamoDbResult
 
-interface DynamoDbDataSource<T: DynamoDbEntity> {
+interface DynamoDbDataSource<T: DynamoDbModel> {
     suspend fun getItem(key: String): DynamoDbResult<T>
     suspend fun getItemsInBatch(keys: List<String>): DynamoDbResult<List<T>>
     suspend fun transactWriteItems(

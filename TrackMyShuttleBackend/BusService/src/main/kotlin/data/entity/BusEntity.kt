@@ -19,7 +19,7 @@ data class BusEntity(
     val busStatus: BusStatus?,
     val currentStop: String?,
     val nextStop: String?,
-) : DynamoDbEntity {
+) : DynamoDbModel {
     fun toBus() = Bus(
         busId = busId,
         driverName = driverName,

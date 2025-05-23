@@ -5,7 +5,9 @@ import com.google.gson.Gson
 import controller.BusStopController
 import controller.BusStopControllerImpl
 import data.db_converters.BusStopItemConverter
+import data.db_converters.BusStopScanResponseItemConverter
 import data.entity.BusStopEntity
+import data.model.BusStopScanned
 import data.respository.BusStopRepository
 import data.respository.BusStopRepositoryImpl
 import data.source.DynamoDbDataSource
@@ -25,12 +27,13 @@ val MainModule = module  {
         client
     }
 
-    single<DynamoDbDataSource<BusStopEntity>> {
+    single<DynamoDbDataSource<BusStopEntity, BusStopScanned>> {
         DynamoDbDataSourceImpl(
             clazz = BusStopEntity::class,
             databaseClient = get(),
             introspector = ClassIntrospector(BusStopEntity::class),
             itemConverter = BusStopItemConverter(),
+            itemConverter2 = BusStopScanResponseItemConverter()
         )
     }
 

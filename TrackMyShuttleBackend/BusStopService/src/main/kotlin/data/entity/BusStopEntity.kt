@@ -6,6 +6,7 @@ import data.model.Location
 import data.util.TableName
 
 private const val TABLE_NAME = "BUS_STOP_TABLE"
+const val BUS_STOP_ADDRESS_INDEX = "BUS_STOP_ADDRESS_INDEX"
 
 @TableName(TABLE_NAME)
 data class BusStopEntity(
@@ -14,7 +15,7 @@ data class BusStopEntity(
     val stopName: String,
     val address: String,
     val location: Location,
-): DynamoDbEntity{
+): DynamoDbModel{
     fun toBusStop() = BusStop(
         stopId = stopId,
         stopName = stopName,

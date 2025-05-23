@@ -1,17 +1,21 @@
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
+import aws.sdk.kotlin.services.dynamodb.model.*
 import controller.BusStopController
 import data.entity.BusStopEntity
+import data.model.BusStopScanned
 import data.source.DynamoDbDataSource
 import di.MainModule
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import model.LocationDto
 import model.request.AddBusStopRequest
-import model.request.UpdateBusStopRequest
+import model.request.GetBusStopsByAddressSubstringRequest
 import model.response.BusStopControllerResponse
 import model.response.BusStopDto
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent.inject
+
+
+const val INDEX = "BUS_STOP_ADDRESS_INDEX"
 
 fun demoData() =  listOf(
     AddBusStopRequest(
@@ -58,6 +62,39 @@ fun demoData() =  listOf(
     )
 )
 
+
+
+suspend fun queryRequest(db: DynamoDbClient){
+    val queryRequest = QueryRequest {
+        tableName = "BUS_TABLE"
+        indexName = "TestGSIIndex"
+        keyConditionExpression = "begins_with(#pk, :pkPrefix)"
+        expressionAttributeNames = mapOf("#pk" to "driverName")
+        expressionAttributeValues = mapOf(":pkPrefix" to AttributeValue.S("J"))
+    }
+
+    val queryRequest2 = QueryRequest {
+        tableName = "BUS_TABLE"
+        indexName = "TestGSIIndex"
+        filterExpression = ""
+        keyConditionExpression = "#dn = :dnValue"
+        expressionAttributeNames = mapOf("#dn" to "driverName")
+        expressionAttributeValues = mapOf(":dnValue" to AttributeValue.S("J"))
+    }
+
+    val scanRequest = ScanRequest {
+        tableName = "BUS_STOP_TABLE"
+        indexName = INDEX
+        filterExpression = "contains(#pk, :pkPrefix)"
+        expressionAttributeNames = mapOf("#pk" to "address")
+        expressionAttributeValues = mapOf(":pkPrefix" to AttributeValue.S("St"))
+    }
+
+    //print(db.query(queryRequest2).items)
+    print(db.scan(scanRequest).items)
+
+}
+
 fun main (){
 
     startKoin {
@@ -66,7 +103,7 @@ fun main (){
 
     val db : DynamoDbClient by inject(clazz = DynamoDbClient::class.java)
 
-    val source : DynamoDbDataSource<BusStopEntity> by inject(
+    val source : DynamoDbDataSource<BusStopEntity, BusStopScanned> by inject(
         clazz = DynamoDbDataSource::class.java,
     )
 
@@ -82,9 +119,9 @@ fun main (){
     }
 
     runBlocking {
-       // eval(1, controller.addBusStop(demoData()[0]))
-        eval(2, controller.getBusStop("BS001"))
-        eval(3, controller.getBusStops(listOf("BS001","BS002")))
+     //   eval(1, controller.addBusStop(demoData()[0]))
+       ///// eval(2, controller.getBusStop("BS001"))
+       ///// eval(3, controller.getBusStops(listOf("BS001","BS002")))
        //  eval(4, controller.addBusStop(demoData()[1]))
        // eval(5, controller.addBusStop(demoData()[2]))
 //        eval(6, controller.getBusStops(listOf("BS002","BS004")))
@@ -99,8 +136,86 @@ fun main (){
 //        ))))
 //        delay(1000)
 //        eval(11, controller.getBusStop("BS001"))
-        eval(12, controller.getBusStop("BS006"))
-
-
+       ////// eval(12, controller.getBusStop("BS006"))
+        //queryRequest(db)
+        eval(13, controller.getBusStopsByAddressSubstring(GetBusStopsByAddressSubstringRequest("123")))
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+suspend fun describeTable(db: DynamoDbClient){
+    val describeTableRequest = DescribeTableRequest {
+        tableName = "BUS_STOP_TABLE"
+    }
+
+    val response = db.describeTable(describeTableRequest)
+    println(response.table)
+}
+
+suspend fun createGlobalSecondaryIndex(db: DynamoDbClient){
+
+    val updateTableRequest = UpdateTableRequest {
+        tableName = "BUS_STOP_TABLE"
+        attributeDefinitions = listOf(
+            AttributeDefinition {
+                attributeName = "stopId"
+                attributeType = ScalarAttributeType.S
+            },
+            AttributeDefinition {
+                attributeName = "stopName"
+                attributeType = ScalarAttributeType.S
+            },
+            AttributeDefinition {
+                attributeName = "address"
+                attributeType = ScalarAttributeType.S
+            }
+        )
+        globalSecondaryIndexUpdates = listOf(
+            GlobalSecondaryIndexUpdate{
+                create = CreateGlobalSecondaryIndexAction{
+                    indexName = "BUS_STOP_ADDRESS_INDEX"
+                    keySchema = listOf(
+                        KeySchemaElement{
+                            attributeName = "stopName"
+                            keyType = KeyType.Hash
+                        },
+                        KeySchemaElement{
+                            attributeName = "address"
+                            keyType = KeyType.Range
+                        }
+                    )
+                    projection = Projection{
+                        projectionType = ProjectionType.KeysOnly
+                    }
+                    provisionedThroughput = ProvisionedThroughput{
+                        readCapacityUnits = 10
+                        writeCapacityUnits = 10
+                    }
+                }
+            }
+        )
+    }
+
+    db.updateTable(updateTableRequest)
+}
+

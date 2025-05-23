@@ -11,20 +11,21 @@ import data.exceptions.DynamoDbErrors
 import data.exceptions.NoPartitionKeyFound
 import data.exceptions.NoTableNameFound
 import data.exceptions.UnsupportedEntityClass
+import data.exceptions.UnsupportedScanRequest
 import data.exceptions.UnsupportedUpdateType
 import data.model.DynamoDbTransactWriteItem
 import data.util.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
-class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
+class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
     private val clazz: KClass<T>,
     private val databaseClient: DynamoDbClient,
     private val introspector: ClassIntrospector<T>,
     private val itemConverter: DbItemConverter<T>,
-) : DynamoDbDataSource<T> {
+    private val itemConverter2: DbItemConverter<F>
+) : DynamoDbDataSource<T, F> {
 
     private var currentTableName: String
     private var primaryKey: String
@@ -266,6 +267,41 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         }
     }
 
+    override suspend fun scanItemsBySubstring(request: DynamoDbScanRequest): DynamoDbResult<List<F>?> {
+        return try {
+            val scanRequest = createScanRequest(request)
+            val response = databaseClient.scan(scanRequest)
+            GetBack.Success(response.items?.map { itemConverter2.deserializeToObject(it) })
+
+        }catch (e: UnsupportedScanRequest) {
+            GetBack.Error(DynamoDbErrors.UnsupportedScanRequest)
+        }catch (e: DynamoDbException) {
+            e.printStackTrace()
+            GetBack.Error(DynamoDbErrors.UndefinedError)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return GetBack.Error()
+        }
+    }
+
+    private fun createScanRequest(request: DynamoDbScanRequest): ScanRequest {
+        return when(request) {
+            is BusStopScanRequest -> {
+                when(request){
+                    is BusStopScanRequest.ScanAddress -> ScanRequest{
+                        tableName = currentTableName
+                        indexName = request.indexName
+                        expressionAttributeNames = mapOf("#address" to request.keyName)
+                        expressionAttributeValues = mapOf(":substring" to AttributeValue.S(request.substring))
+                        filterExpression = "contains(#address, :substring)"
+                    }
+                }
+            }
+
+            else -> throw UnsupportedScanRequest()
+        }
+    }
+
     private fun <T : AttributeValue> convertToAttrValUpdate(
         attrName: String,
         attrValue: T,
@@ -308,15 +344,38 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         name: String,
         partitionKey: String,
     ) {
-        val attDef = AttributeDefinition {
-            attributeName = partitionKey
-            attributeType = ScalarAttributeType.S
-        }
+        val attDef = listOf(
+            AttributeDefinition {
+                attributeName = partitionKey
+                attributeType = ScalarAttributeType.S
+            },
+            AttributeDefinition {
+                attributeName = BusStopEntityAttributes.STOP_NAME
+                attributeType = ScalarAttributeType.S
+            },
+            AttributeDefinition {
+                attributeName = BusStopEntityAttributes.ADDRESS
+                attributeType = ScalarAttributeType.S
+            }
+        )
 
-        val keySchemaVal = KeySchemaElement {
-            attributeName = partitionKey
-            keyType = KeyType.Hash
-        }
+        val tableKeySchemaVal = listOf(
+            KeySchemaElement {
+                attributeName = partitionKey
+                keyType = KeyType.Hash
+            }
+        )
+
+        val indexKeySchemaVal = listOf(
+            KeySchemaElement {
+                attributeName = BusStopEntityAttributes.STOP_NAME
+                keyType = KeyType.Hash
+            },
+            KeySchemaElement {
+                attributeName = BusStopEntityAttributes.ADDRESS
+                keyType = KeyType.Range
+            },
+        )
 
         val provisionedVal = ProvisionedThroughput {
             readCapacityUnits = 10
@@ -324,10 +383,18 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
         }  /// Fixme: May cause some problems later
 
         val createTableRequest = CreateTableRequest {
-            attributeDefinitions = listOf(attDef)
-            keySchema = listOf(keySchemaVal)
+            attributeDefinitions = attDef
+            keySchema = tableKeySchemaVal
             provisionedThroughput = provisionedVal
             tableName = name
+            globalSecondaryIndexes = listOf(
+                GlobalSecondaryIndex {
+                    indexName = BUS_STOP_ADDRESS_INDEX
+                    keySchema = indexKeySchemaVal
+                    provisionedThroughput = provisionedVal
+                    projection = Projection {projectionType = ProjectionType.KeysOnly}
+                }
+            )
         }
 
         try {
@@ -377,6 +444,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
 
 
     companion object {
+
         const val BATCH_REQUEST_RETRY_INTERVAL = 300L
         const val MAX_GET_ITEM_BATCH_LIMIT = 80
         const val MAX_TRANS_WRITE_ITEMS_LIMIT = 80

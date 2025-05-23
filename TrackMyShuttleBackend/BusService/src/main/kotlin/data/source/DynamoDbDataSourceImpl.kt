@@ -24,7 +24,7 @@ import kotlin.collections.chunked
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
-class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
+class DynamoDbDataSourceImpl<T : DynamoDbModel>(
     private val clazz: KClass<T>,
     private val databaseClient: DynamoDbClient,
     private val introspector: ClassIntrospector<T>,
@@ -174,47 +174,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbEntity>(
     ){
         databaseClient.transactWriteItems(transactRequest)
     }
-
-//    override suspend fun transactWriteItems(
-//        items: List<DynamoDbTransactWriteItem<T>>
-//    ): BasicDynamoDbResult {
-//
-//
-//        if (items.size >= MAX_TRANS_WRITE_ITEMS_LIMIT) return GetBack.Error(DynamoDbErrors.MaxTransWriteItemsExceeded)
-//
-//
-//        val transactionWriteItems = items.map { item ->
-//            TransactWriteItem {
-//                put = item.putItem?.let {
-//                    Put {
-//                        tableName = currentTableName
-//                        this.item = itemConverter.serializeToAttrValue(it)
-//                    }
-//                }
-//                delete = item.deleteItemKey?.let {
-//                    Delete {
-//                        tableName = currentTableName
-//                        key = convertToItemKey(item.deleteItemKey)
-//                    }
-//                }
-//            }
-//        }
-//
-//        val transactionWriteRequest = TransactWriteItemsRequest {
-//            transactItems = transactionWriteItems
-//        }
-//
-//        try {
-//            databaseClient.transactWriteItems(transactionWriteRequest)
-//            return GetBack.Success()
-//        } catch (e: DynamoDbException){
-//            e.printStackTrace()
-//            return GetBack.Error(DynamoDbErrors.UndefinedError)
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//            return GetBack.Error()
-//        }
-//    }
 
 
     override suspend fun putItem(
