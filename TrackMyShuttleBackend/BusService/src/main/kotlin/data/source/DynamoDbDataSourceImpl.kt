@@ -184,7 +184,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         val putRequest = PutItemRequest {
             tableName = currentTableName
             this.item = itemValues
-            conditionExpression = if(isUpsert) "attribute_exists($primaryKey)" else null
+            conditionExpression = if(isUpsert) "attribute_exists($primaryKey)" else "attribute_not_exists($primaryKey)"
         }
         try {
             databaseClient.putItem(putRequest)
