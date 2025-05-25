@@ -16,6 +16,7 @@ import data.exceptions.UnsupportedUpdateType
 import data.model.DynamoDbTransactWriteItem
 import data.util.*
 import kotlinx.coroutines.delay
+import kotlin.math.max
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
@@ -90,15 +91,17 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
         }
     }
 
-
+    // I tried With one unknown key thought it will create infinite loop but did not
     private suspend fun processGetItemBatchRequest(
         batchRequest: BatchGetItemRequest,
     ): List<T> {
 
         var unprocessedKeysBatch: BatchGetItemRequest? = batchRequest
         val processedItems: MutableList<T> = mutableListOf()
+        var maxRetryAttempts = MAX_RETRY_ATTEMPTS
+        var retryInterval = BATCH_REQUEST_RETRY_INTERVAL
 
-        while (unprocessedKeysBatch != null) {
+        while (unprocessedKeysBatch != null && maxRetryAttempts > 0)  {
             val response = databaseClient.batchGetItem(batchRequest)
 
             response.responses?.get(currentTableName)?.let { items ->
@@ -112,7 +115,9 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
                     createBatchGetItemRequest(keys)
                 }
 
-            delay(BATCH_REQUEST_RETRY_INTERVAL)
+            delay(retryInterval)
+            retryInterval += retryInterval
+            maxRetryAttempts--
         }
 
         return processedItems
@@ -446,6 +451,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
     companion object {
 
         const val BATCH_REQUEST_RETRY_INTERVAL = 300L
+        const val MAX_RETRY_ATTEMPTS = 3
         const val MAX_GET_ITEM_BATCH_LIMIT = 80
         const val MAX_TRANS_WRITE_ITEMS_LIMIT = 80
     }

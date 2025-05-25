@@ -1,7 +1,7 @@
 package model.request
 
+import data.model.BasicBusDetails
 import data.model.Bus
-import model.BusStatusDto
 
 
 data class BusRegistrationOrUpdateRequest(
@@ -9,7 +9,6 @@ data class BusRegistrationOrUpdateRequest(
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
-    val busStatus: BusStatusDto?,
 )
 
 fun BusRegistrationOrUpdateRequest.toBus() = Bus(
@@ -17,8 +16,14 @@ fun BusRegistrationOrUpdateRequest.toBus() = Bus(
     driverName = driverName,
     activeHours = activeHours,
     activeDays = activeDays,
-    busStatus = busStatus?.toBusStatus(),
+    busStatus = null,
     stopIds = emptyList(),
     currentStop = null,
     nextStop = null,
+)
+
+fun BusRegistrationOrUpdateRequest.toBasicBus() = BasicBusDetails(
+    driverName = driverName,
+    activeHours = activeHours,
+    activeDays = activeDays,
 )

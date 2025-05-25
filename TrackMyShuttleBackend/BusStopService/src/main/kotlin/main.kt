@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import model.LocationDto
 import model.request.AddBusStopRequest
 import model.request.GetBusStopsByAddressSubstringRequest
+import model.request.UpdateBusStopRequest
 import model.response.BusStopControllerResponse
 import model.response.BusStopDto
 import org.koin.core.context.GlobalContext.startKoin
@@ -138,7 +139,16 @@ fun main (){
 //        eval(11, controller.getBusStop("BS001"))
        ////// eval(12, controller.getBusStop("BS006"))
         //queryRequest(db)
+        eval(1, controller.addBusStop(demoData()[0]))
+        eval(10, controller.updateBusStop(UpdateBusStopRequest( BusStopDto(
+            stopID = "BS0rdddrr89",
+            stopName = "Uptown Stop",
+            address = "567 Uptown Blvd",
+            location = LocationDto("30.2672", "-97.7431")
+        ))))
+        eval(8, controller.deleteBusStop(listOf("BS")))
         eval(13, controller.getBusStopsByAddressSubstring(GetBusStopsByAddressSubstringRequest("123")))
+        eval(14, controller.getBusStops(listOf("BS005","BS006","texpkkasda")))
     }
 }
 

@@ -10,6 +10,7 @@ import model.request.BusRegistrationOrUpdateRequest
 import model.request.BusStatusUpdateRequest
 import model.request.BusStopIdsUpdateRequest
 import model.request.BusStopIdsUpdateRequest.Companion.UpdateType
+import model.request.toBasicBus
 import model.request.toBus
 import model.response.BasicBusControllerResponse
 import model.response.BusControllerResponse
@@ -55,7 +56,10 @@ class BusControllerImpl(
     }
 
     override suspend fun updateBusDetails(request: BusRegistrationOrUpdateRequest): BasicBusControllerResponse {
-        val result = busRepository.updateBusDetails(request.toBus())
+        val result = busRepository.updateBusDetails(
+            busId = request.busId,
+            bus = request.toBasicBus()
+        )
         return when(result) {
             is GetBack.Success -> BusControllerResponse.Success()
             is GetBack.Error -> result.toBusControllerErrors()

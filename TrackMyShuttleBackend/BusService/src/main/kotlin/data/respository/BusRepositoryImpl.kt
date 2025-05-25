@@ -3,6 +3,7 @@ package data.respository
 import data.entity.BusEntity
 import data.exceptions.BusRepoErrors
 import data.exceptions.DynamoDbErrors
+import data.model.BasicBusDetails
 import data.model.Bus
 import data.model.BusStatus
 import data.model.BusStatus.Companion.fromValue
@@ -47,11 +48,14 @@ class BusRepositoryImpl(
     }
 
     override suspend fun updateBusDetails(
-        bus: Bus
+        busId: String,
+        bus: BasicBusDetails
     ): BasicBusRepoResult {
-        val partitionKey = extractPartitionKeyFromBusId(bus.busId)
-            ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
-        val result = dynamoDbSource.putItem(item = bus.toBusEntity(partitionKey.toString()), isUpsert = true)
+        /// FIXME()
+        val result = dynamoDbSource.updateItemAttr(
+            keyVal = busId,
+            update = BusEntityAttrUpdate.UpdateBasicBusDetails(value = bus)
+        )
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()

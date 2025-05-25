@@ -1,12 +1,11 @@
 package data.respository
 
-import data.entity.BusEntity
+import data.model.BasicBusDetails
 import data.model.Bus
 import data.model.BusStatus
 import data.util.BasicBusRepoResult
 import data.util.BusEntityAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
 import data.util.BusRepoResult
-import data.util.GetBackBasic
 
 interface BusRepository {
     suspend fun fetchBusByBusId(busId: String): BusRepoResult<Bus>
@@ -19,7 +18,7 @@ interface BusRepository {
 
     suspend fun registerBus(bus: Bus): BasicBusRepoResult // will call another lambda function
 
-    suspend fun updateBusDetails(bus: Bus): BasicBusRepoResult
+    suspend fun updateBusDetails(busId: String,bus: BasicBusDetails): BasicBusRepoResult
 
     suspend fun deleteBus(busId: String): BasicBusRepoResult
 

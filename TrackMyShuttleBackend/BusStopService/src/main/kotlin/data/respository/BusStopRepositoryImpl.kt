@@ -34,6 +34,8 @@ class BusStopRepositoryImpl(
         }
     }
 
+
+    /// Note: Using putItem here will replace all the fields, if you want any filed unchanged the use UpdateItemAttr( see example in BusService.)
     override suspend fun updateBusStop(busStop: BusStop): BasicBusStopRepoResult {
         val result = dynamoDbSource.putItem(item = busStop.toBusStopEntity(), isUpsert = true)
         return when (result) {

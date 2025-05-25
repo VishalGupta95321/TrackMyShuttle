@@ -1,18 +1,25 @@
 package data.util
 
 import aws.sdk.kotlin.services.dynamodb.model.AttributeAction
+import data.model.BasicBusDetails
 
 interface DynamoDbAttrUpdate
 
 
 sealed class BusEntityAttrUpdate(
-    val action: AttributeAction = AttributeAction.Put
+     val action: AttributeAction = AttributeAction.Put
 ) : DynamoDbAttrUpdate {
+
+    data class UpdateBasicBusDetails(
+        val value: BasicBusDetails,
+        private val updateAction: AttributeAction = AttributeAction.Put
+    ):BusEntityAttrUpdate(updateAction)
+
     data class UpdateBusStatus(val value: data.model.BusStatus) : BusEntityAttrUpdate()
 
     data class UpdateStopIds(
         val value: List<String>,
-        val updateAction: StopIdsUpdateAction
+        private val updateAction: StopIdsUpdateAction
     ) : BusEntityAttrUpdate(updateAction.action) {
         companion object {
             sealed class StopIdsUpdateAction(val action: AttributeAction) {
