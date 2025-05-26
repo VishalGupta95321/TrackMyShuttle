@@ -160,7 +160,10 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
                 processTransactWriteItemsRequest(createTransactWriteItemsRequest(transactionWriteItems))
             }
             return GetBack.Success()
-        } catch (e: DynamoDbException){
+        } catch (e: ConditionalCheckFailedException) {
+            e.printStackTrace()
+            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+        }catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
         } catch (e: Exception) {

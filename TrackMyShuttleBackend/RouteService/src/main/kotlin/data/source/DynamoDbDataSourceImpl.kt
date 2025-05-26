@@ -15,6 +15,7 @@ import data.exceptions.UnsupportedUpdateType
 import data.model.DynamoDbTransactWriteItem
 import data.util.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
@@ -35,11 +36,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         val itemKey = convertToItemKey(key)
         val getRequest = GetItemRequest {
             this.key = itemKey
+            consistentRead = true
             tableName = currentTableName
         }
 
         try {
             val response = databaseClient.getItem(getRequest)
+            println("Responce  ========== $response")
             response.item?.let { item ->
                 return GetBack.Success(itemConverter.deserializeToObject(item))
             }
@@ -76,18 +79,18 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         return GetBack.Success(processedItems)
     }
 
+
     private fun createBatchGetItemRequest(
         /// TODO this is throwing the error TODO *Fixed
         itemKeys: List<Map<String, AttributeValue>>,
     ): BatchGetItemRequest {
         return BatchGetItemRequest {
-            requestItems = mapOf<String, KeysAndAttributes>(
+            requestItems = mapOf(
                 currentTableName to KeysAndAttributes {
                     keys = itemKeys
                 })
         }
     }
-
 
     private suspend fun processGetItemBatchRequest(
         batchRequest: BatchGetItemRequest,
@@ -119,7 +122,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         return processedItems
     }
 
-
+    // Can perform Updates on one attr at a time on different table. PUT and DELETE does not support for different table.
     override suspend fun transactWriteItems(
         items: List<DynamoDbTransactWriteItem<T>>
     ): BasicDynamoDbResult {
@@ -129,58 +132,74 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         try {
             itemChunks.forEach { chunk ->
                 val transactionWriteItems = chunk.map { item ->
-
-                    val attrUpdate = item.updateItem?.updateAttrUpdate?.let { convertToAttrValUpdate(it) }
-
-                    val tableNameToUpdate = when (attrUpdate) {
-                        is RouteEntityAttrUpdate -> currentTableName
-                        is BusEntityAttrUpdate -> BUS_TABLE_NAME
-                        else -> throw UnsupportedUpdateType()
-                    }
-                    val primaryKeyNameOfTable = when (attrUpdate) {
-                        is RouteEntityAttrUpdate -> primaryKey
-                        is BusEntityAttrUpdate -> BUS_TABLE_PRIMARY_KEY
-                        else -> throw UnsupportedUpdateType()
-                    }
-
-
                     TransactWriteItem {
-                        put = item.putItem?.let {
+                        put = item.putItem?.let { item ->
+
                             Put {
-                                tableName = tableNameToUpdate
-                                this.item = itemConverter.serializeToAttrValue(it)
+                                tableName = currentTableName
+                                this.item = itemConverter.serializeToAttrValue(item)
                                 conditionExpression = "attribute_not_exists($primaryKey)"
                             }
                         }
-                        delete = item.deleteItemKey?.let {
+
+                        delete = item.deleteItemKey?.let { deleteKey ->
                             Delete {
-                                tableName = tableNameToUpdate
-                                key = convertToItemKey(item.deleteItemKey)
+                                tableName = currentTableName
+                                key = convertToItemKey(deleteKey)
                                 conditionExpression = "attribute_exists($primaryKey)"
                             }
                         }
 
                         // one attr at time
-                        update = Update {
-                            key = convertToItemKey(item.updateItem.key)
-                            tableName = tableNameToUpdate
-                            conditionExpression = "attribute_exists(${attrUpdate.keys.first()})"
-                            expressionAttributeNames = mapOf("#attribute" to attrUpdate.keys.first())
-                            expressionAttributeValues = attrUpdate.values.first().value?.let { mapOf(":value" to it) }
-                            updateExpression = when (attrUpdate.values.first().action) {
-                                AttributeAction.Add -> "ADD #attribute :value"
-                                AttributeAction.Delete -> "DELETE #attribute :value"
-                                AttributeAction.Put -> "set #attribute = :value"
-                                else -> throw Exception()
+                        update = item.updateItem?.let { updateItem ->
+
+
+                            val tableNameToUpdate = updateItem.let {
+                                when (it.attrToUpdate) {
+                                    is RouteEntityAttrUpdate -> currentTableName
+                                    is BusEntityAttrUpdate -> BUS_TABLE_NAME
+                                    else -> throw UnsupportedUpdateType()
+                                }
                             }
+
+                            val primaryKeyNameOfTable = updateItem.let {
+                                when (it.attrToUpdate) {
+                                    is RouteEntityAttrUpdate -> primaryKey
+                                    is BusEntityAttrUpdate -> BUS_TABLE_PRIMARY_KEY
+                                    else -> throw UnsupportedUpdateType()
+                                }
+                            }
+
+                            val attrName = convertToAttrValUpdate(updateItem.attrToUpdate).keys.first()
+                            val attrVal = convertToAttrValUpdate(updateItem.attrToUpdate).values.first().value
+                            val updateAction = convertToAttrValUpdate(updateItem.attrToUpdate).values.first().action
+
+                            if (attrVal != null && updateAction != null) {
+                                Update {
+                                    key =  mapOf(primaryKeyNameOfTable to AttributeValue.S(updateItem.key))
+                                    tableName = tableNameToUpdate
+                                    conditionExpression = "attribute_exists(${primaryKeyNameOfTable})"
+                                    expressionAttributeNames = mapOf("#attribute" to attrName)
+                                    expressionAttributeValues =  mapOf(":value" to attrVal)
+                                    updateExpression = when (updateAction) {
+                                        AttributeAction.Add -> "ADD #attribute :value"
+                                        AttributeAction.Delete -> "DELETE #attribute :value"
+                                        AttributeAction.Put -> "set #attribute = :value"
+                                        else -> throw Exception()
+                                    }
+                                }
+                            } else null
                         }
                     }
                 }
-
                 processTransactWriteItemsRequest(createTransactWriteItemsRequest(transactionWriteItems))
             }
             return GetBack.Success()
-        } catch (e: UnsupportedUpdateType) {
+        } catch (e: ConditionalCheckFailedException) {
+            e.printStackTrace()
+            println(" CONDITION fail from transact write")
+            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+        }catch (e: UnsupportedUpdateType) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
         } catch (e: DynamoDbException) {
@@ -218,7 +237,8 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             databaseClient.putItem(putRequest)
             return GetBack.Success()
         } catch (e: ConditionalCheckFailedException) {
-            e.printStackTrace()
+         //   e.printStackTrace()
+            println(" CONDITION fail from PUT")
             if (isUpsert) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
             return GetBack.Error(DynamoDbErrors.ItemAlreadyExists)
         } catch (e: DynamoDbException) {
@@ -325,7 +345,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             is RouteEntityAttrUpdate -> {
                 when (update) {
                     is RouteEntityAttrUpdate.UpdateBusIds -> convertToAttrValUpdate(
-                        update.attrName,
+                        RouteEntityAttributes.BUS_IDS,
                         AttributeValue.Ss(update.value),
                         update.action
                     )
@@ -335,7 +355,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             is BusEntityAttrUpdate -> {
                 when (update) {
                     is BusEntityAttrUpdate.UpdateStopIds -> convertToAttrValUpdate(
-                        update.attrName,
+                        BUS_TABLE_STOP_IDS_ATTRIBUTE_NAME,
                         AttributeValue.Ss(update.value),
                         update.action
                     )
@@ -434,6 +454,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
 
         const val BUS_TABLE_NAME = "BUS_TABLE"
         const val BUS_TABLE_PRIMARY_KEY = "busId"
+        const val BUS_TABLE_STOP_IDS_ATTRIBUTE_NAME = "stopIds"
 
         const val BATCH_REQUEST_RETRY_INTERVAL = 300L
         const val MAX_RETRY_ATTEMPTS = 3

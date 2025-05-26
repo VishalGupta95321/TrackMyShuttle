@@ -146,7 +146,7 @@ fun main (){
             address = "567 Uptown Blvd",
             location = LocationDto("30.2672", "-97.7431")
         ))))
-        eval(8, controller.deleteBusStop(listOf("BS")))
+        eval(8, controller.deleteBusStop(listOf("BS","hkxbwa")))
         eval(13, controller.getBusStopsByAddressSubstring(GetBusStopsByAddressSubstringRequest("123")))
         eval(14, controller.getBusStops(listOf("BS005","BS006","texpkkasda")))
     }

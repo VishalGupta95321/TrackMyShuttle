@@ -217,7 +217,8 @@ suspend fun main(){
             driverName = "MikeDavis",
             activeHours = "10:00-22:00",
             activeDays = "Wednesday-Sunday",
-        )
+        ),
+
     )
 
     fun <T> eval(busNo:Int,result: BusControllerResponse<T>){
@@ -229,7 +230,7 @@ suspend fun main(){
 
     runBlocking {
 //        eval<Nothing>(0, controller.registerBus(busRequests[0]))
-        eval<Nothing>(1, controller.registerBus(busRequests[1]))
+       // eval<Nothing>(1, controller.registerBus(busRequests[1]))
 //        eval<Nothing>(2, controller.registerBus(busRequests[2]))
 //        eval<Nothing>(3, controller.registerBus(busRequests[3]))
 //        eval<Nothing>(4, controller.registerBus(busRequests[4]))
@@ -291,7 +292,58 @@ suspend fun main(){
         eval(24,controller.getBus("BUS-0007"))
 
         eval(25,controller.getBuses(listOf("BUS-0008", "BUS-0007", "BUS-0006")))
-
+        eval(26,controller.deleteBus("BUS-007898900"))
+        eval<Nothing>(27, controller.registerBus( BusRegistrationOrUpdateRequest(
+            busId = "BUS-0007",
+            driverName = "JaneSmith",
+            activeHours = "07:00-19:00",
+            activeDays = "Monday-Saturday",
+        )))
+        eval(28,controller.getBus("BUS-0007"))
+        eval<Nothing>(25, controller.registerBus(BusRegistrationOrUpdateRequest(
+            busId = "BUS-0099",
+            driverName = "MikeDavis",
+            activeHours = "10:00-22:00",
+            activeDays = "Wednesday-Sunday",
+        )))
+//        eval<Nothing>(25, controller.registerBus(BusRegistrationOrUpdateRequest(
+//            busId = "BUS-0088",
+//            driverName = "MikeDavis",
+//            activeHours = "10:00-22:00",
+//            activeDays = "Wednesday-Sunday",
+//        )))
+//        eval<Nothing>(25, controller.registerBus(BusRegistrationOrUpdateRequest(
+//            busId = "BUS-0077",
+//            driverName = "MikeDavis",
+//            activeHours = "10:00-22:00",
+//            activeDays = "Wednesday-Sunday",
+//        )))
+        eval(29,controller.getBus("BUS-0077"))
+//        eval<Nothing>(30, controller.registerBus(BusRegistrationOrUpdateRequest(
+//            busId = "BUS-0066",
+//            driverName = "MikeDavis",
+//            activeHours = "10:00-22:00",
+//            activeDays = "Wednesday-Sunday",
+//        )))
+        eval(31,controller.getBus("BUS-0066"))
+//        eval<Nothing>(32, controller.registerBus(BusRegistrationOrUpdateRequest(
+//            busId = "BUS-0055",
+//            driverName = "MikeDavis",
+//            activeHours = "10:00-22:00",
+//            activeDays = "Wednesday-Sunday",
+//        )))
+        eval(33,controller.getBus("BUS-0066"))
+//        eval<Nothing>(34, controller.registerBus(BusRegistrationOrUpdateRequest(
+//            busId = "BUS-0098",
+//            driverName = "MikeDavis",
+//            activeHours = "10:00-22:00",
+//            activeDays = "Wednesday-Sunday",
+//        )))
+        eval<Nothing>(35, controller.updateStopIds(BusStopIdsUpdateRequest(
+            busId = "BUS-0098",
+            stopIds = listOf("STOP8"),
+            updateType = BusStopIdsUpdateRequest.Companion.UpdateType.Add
+        )))
+        eval(36,controller.getBus("BUS-0098"))
     }
-
 }

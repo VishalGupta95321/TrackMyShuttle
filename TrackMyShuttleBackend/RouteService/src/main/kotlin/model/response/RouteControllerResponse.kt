@@ -2,7 +2,7 @@ package model.response
 
 import exceptions.RouteControllerExceptions
 
-typealias BasicBusStopControllerResponse = RouteControllerResponse<Nothing>
+typealias BasicRouteControllerResponse = RouteControllerResponse<Nothing>
 
 
 sealed interface RouteControllerResponse<out T> {

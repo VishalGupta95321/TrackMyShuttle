@@ -125,12 +125,7 @@ class BusRepositoryImpl(
             keyVal = busId
         )
         return when (result) {
-            is GetBack.Error -> {
-                if (result.message is DynamoDbErrors.TypeMismatchForAttribute){
-                    println("Came here once")
-                    updateStopIds(busId, stopIds, StopIdsUpdateAction.Put)
-                } else result.toBusRepoErrors()
-            }
+            is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success()
         }
     }

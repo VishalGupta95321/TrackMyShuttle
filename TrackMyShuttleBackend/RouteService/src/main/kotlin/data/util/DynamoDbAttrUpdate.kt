@@ -8,13 +8,13 @@ interface DynamoDbAttrUpdate
 
 sealed class RouteEntityAttrUpdate(
     val action: AttributeAction = AttributeAction.Put,
-    val attrName: String,
 ) : DynamoDbAttrUpdate {
+
     data class UpdateBusIds(
         val keyVal: String,
         val value: List<String>,
         private val updateAction: BusIdsUpdateAction
-    ) : RouteEntityAttrUpdate(updateAction.action, attrName = RouteEntityAttributes.BUS_IDS) {
+    ) : RouteEntityAttrUpdate(updateAction.action) {
         companion object {
             sealed class BusIdsUpdateAction(val action: AttributeAction) {
                 data object Put : BusIdsUpdateAction(AttributeAction.Put)
@@ -27,19 +27,15 @@ sealed class RouteEntityAttrUpdate(
 
 
 sealed class BusEntityAttrUpdate(
-    val attrName: String,
     val action: AttributeAction = AttributeAction.Put
 ) : DynamoDbAttrUpdate {
     data class UpdateStopIds(
         val keyVal: String,
         val value: List<String>,
         private val updateAction: StopIdsUpdateAction
-    ) : BusEntityAttrUpdate(action = updateAction.action, attrName = BUS_TABLE_STOP_IDS_ATTRIBUTE_NAME) {
+    ) : BusEntityAttrUpdate(action = updateAction.action) {
 
         companion object {
-
-            private const val BUS_TABLE_STOP_IDS_ATTRIBUTE_NAME = "stopIds"
-
             sealed class StopIdsUpdateAction(val action: AttributeAction) {
                 data object Put : StopIdsUpdateAction(AttributeAction.Put)
                 data object Add : StopIdsUpdateAction(AttributeAction.Add)

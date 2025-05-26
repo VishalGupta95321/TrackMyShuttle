@@ -10,8 +10,6 @@ interface DynamoDbDataSource<T: DynamoDbModel> {
     suspend fun getItem(key: String): DynamoDbResult<T>
     suspend fun getItemsInBatch(keys: List<String>): DynamoDbResult<List<T>>
 
-    //suspend fun putItemInBatch(items: List<T>, keys: List<String>): DynamoDbResult<Boolean>
-
     suspend fun transactWriteItems(
         items: List<DynamoDbTransactWriteItem<T>>
     ): BasicDynamoDbResult

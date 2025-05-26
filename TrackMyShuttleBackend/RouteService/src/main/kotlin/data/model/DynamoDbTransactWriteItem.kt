@@ -11,7 +11,7 @@ data class  DynamoDbTransactWriteItem <T: DynamoDbModel>(
     companion object{
         data class TransactionUpdateItem(
             val key: String,
-            val updateAttrUpdate: DynamoDbAttrUpdate
+            val attrToUpdate: DynamoDbAttrUpdate
         )
     }
 }
