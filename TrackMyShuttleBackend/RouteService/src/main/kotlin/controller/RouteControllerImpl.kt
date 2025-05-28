@@ -52,9 +52,7 @@ class RouteControllerImpl(
             is GetBack.Success ->  RouteControllerResponse.Success(
                 result.data?.let { BusIdsResponse(it) }
             )
-            is GetBack.Error -> {
-                TODO()
-            }
+            is GetBack.Error -> result.toRouteControllerErrors()
         }
     }
 

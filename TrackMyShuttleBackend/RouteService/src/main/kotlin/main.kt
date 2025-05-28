@@ -1,15 +1,7 @@
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
-import aws.sdk.kotlin.services.dynamodb.model.AttributeDefinition
-import aws.sdk.kotlin.services.dynamodb.model.CreateTableRequest
-import aws.sdk.kotlin.services.dynamodb.model.DeleteTableRequest
+
 import aws.sdk.kotlin.services.dynamodb.model.DescribeTableRequest
-import aws.sdk.kotlin.services.dynamodb.model.KeySchemaElement
-import aws.sdk.kotlin.services.dynamodb.model.KeyType
-import aws.sdk.kotlin.services.dynamodb.model.ProvisionedThroughput
-import aws.sdk.kotlin.services.dynamodb.model.ResourceInUseException
-import aws.sdk.kotlin.services.dynamodb.model.ScalarAttributeType
 import aws.sdk.kotlin.services.dynamodb.model.ScanRequest
-import aws.sdk.kotlin.services.dynamodb.waiters.waitUntilTableExists
 import data.entity.RouteEntity
 import data.respository.RouteRepository
 import data.source.DynamoDbDataSource
@@ -52,11 +44,11 @@ fun main(){
 //         }
 //      }
 
-//      repo.deleteAssignedRoutesForBusAndUpdateBusTable(
-//         busId = "BUS-0055",
-//         allStopIds = listOf( "STOP2", "STOP3", "STOP4", "STOP5","STOP6"),
-//         stopIdsToDelete = listOf("STOP5")
-//      )
+      repo.deleteAssignedRoutesForBusAndUpdateBusTable(
+         busId = "BUS-0055",
+         allStopIds = listOf( "STOP2", "STOP3", "STOP4","STOP6"),
+         stopIdsToDelete = listOf("STOP4")
+      )
 
       repo.getBusIdsByRouteId("STOP4-STOP5").let {
          when(it){

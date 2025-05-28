@@ -15,7 +15,6 @@ import data.util.RouteEntityAttrUpdate.UpdateBusIds.Companion.BusIdsUpdateAction
 import data.util.RouteRepoResult
 
 
-private const val PLACEHOLDER_BUS_ID_FOR_ROUTE = "NONE"
 
 class RouteRepositoryImpl(
     private val dynamoDbSource: DynamoDbDataSource<RouteEntity>
@@ -33,7 +32,7 @@ class RouteRepositoryImpl(
             addAll(generatePossibleRoutes(oldStopIds+stopIdsToAdd))
             removeAll(generatePossibleRoutes(oldStopIds))
         }
-        val routeEntities = routes.map { RouteEntity(routeId = it,busIds = listOf(PLACEHOLDER_BUS_ID_FOR_ROUTE)) }
+        val routeEntities = routes.map { RouteEntity(routeId = it,busIds = null) }
 
         routeEntities.forEach { item ->
             val result = dynamoDbSource.putItem(item)
@@ -150,12 +149,19 @@ class RouteRepositoryImpl(
 
     override suspend fun getBusIdsByRouteId(routeId: String): RouteRepoResult<List<String>> {
         val result = dynamoDbSource.getItem(routeId)
-        return when (result) {
-            is GetBack.Error -> result.toRouteRepoErrors()
-            is GetBack.Success -> {
-                val busIds = result.data?.busIds?.minus(PLACEHOLDER_BUS_ID_FOR_ROUTE)
-                GetBack.Success(busIds)
+        when (result) {
+            is GetBack.Error -> {
+                if (result.message !is DynamoDbErrors.ItemDoesNotExists)
+                    return result.toRouteRepoErrors()
             }
+            is GetBack.Success -> return GetBack.Success(result.data?.busIds)
+        }
+
+        //// Checking by reversing the Route Id
+        val result2 = dynamoDbSource.getItem(routeId.reversed())
+        return when (result2) {
+            is GetBack.Error -> result.toRouteRepoErrors()
+            is GetBack.Success -> GetBack.Success(result2.data?.busIds)
         }
     }
 

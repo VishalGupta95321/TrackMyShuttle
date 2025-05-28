@@ -197,8 +197,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             return GetBack.Success()
         } catch (e: ConditionalCheckFailedException) {
             e.printStackTrace()
-            println(" CONDITION fail from transact write")
-            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+            return GetBack.Error(DynamoDbErrors.ConditionCheckFailed)
         }catch (e: UnsupportedUpdateType) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
@@ -303,9 +302,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             databaseClient.updateItem(updateRequest)
             return GetBack.Success()
 
-        } catch (e: ConditionalCheckFailedException) {
-            e.printStackTrace()
-            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         } catch (e: DynamoDbException) {
             e.printStackTrace()
             if (e.localizedMessage == "Type mismatch for attribute to update")
