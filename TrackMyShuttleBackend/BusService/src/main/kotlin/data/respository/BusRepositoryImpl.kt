@@ -7,6 +7,8 @@ import data.model.BasicBusDetails
 import data.model.Bus
 import data.model.BusStatus
 import data.model.BusStatus.Companion.fromValue
+import data.model.DynamoDbTransactWriteItem
+import data.model.DynamoDbTransactWriteItem.Companion.TransactionUpdateItem
 import data.model.toBusEntity
 import data.source.DynamoDbDataSource
 import data.util.BasicBusRepoResult
@@ -36,21 +38,21 @@ class BusRepositoryImpl(
         }
     }
 
-    override suspend fun registerBus(bus: Bus): BasicBusRepoResult {
+    override suspend fun registerBus(bus: Bus): BusRepoResult<String> {
         val partitionKey = extractPartitionKeyFromBusId(bus.busId)
             ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
 
         val result = dynamoDbSource.putItem(item = bus.toBusEntity(partitionKey.toString()))
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
-            is GetBack.Success -> GetBack.Success() /// in the controller return the bus id after successful registration.
+            is GetBack.Success -> GetBack.Success(bus.busId) /// in the controller return the bus id after successful registration.
         }
     }
 
     override suspend fun updateBusDetails(
         busId: String,
         bus: BasicBusDetails
-    ): BasicBusRepoResult {
+    ): BusRepoResult<BasicBusDetails> {
         /// FIXME()
         val result = dynamoDbSource.updateItemAttr(
             keyVal = busId,
@@ -58,15 +60,15 @@ class BusRepositoryImpl(
         )
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
-            is GetBack.Success -> GetBack.Success()
+            is GetBack.Success -> GetBack.Success(bus)
         }
     }
 
-    override suspend fun deleteBus(busId: String): BasicBusRepoResult {
+    override suspend fun deleteBus(busId: String): BusRepoResult<String> {
         val result = dynamoDbSource.deleteItem(busId)
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
-            is GetBack.Success -> GetBack.Success()
+            is GetBack.Success -> GetBack.Success(busId)
         }
     }
 
@@ -84,27 +86,37 @@ class BusRepositoryImpl(
         }
     }
 
-    override suspend fun updateCurrentStop(
+    override suspend fun updateCurrentAndNextStop(
         busId: String,
-        currentBusStopId: String
+        currentBusStopName: String,
+        nextBusStopName: String
     ): BasicBusRepoResult {
-        val result = dynamoDbSource.updateItemAttr(
-            update = BusEntityAttrUpdate.UpdateCurrentStop(currentBusStopId),  // TODO maybe change with just name or full stop info like name and id
-            keyVal = busId
-        )
-        return when (result) {
-            is GetBack.Error -> result.toBusRepoErrors()
-            is GetBack.Success -> GetBack.Success()
-        }
-    }
 
-    override suspend fun updateNextStop(
-        busId: String,
-        nextBusStopId: String
-    ): BasicBusRepoResult {
-        val result = dynamoDbSource.updateItemAttr(
-            update = BusEntityAttrUpdate.UpdateNextStop(nextBusStopId),
-            keyVal = busId
+        val currentStopItem = DynamoDbTransactWriteItem<BusEntity>(
+            putItem = null,
+            deleteItemKey = null,
+            updateItem = TransactionUpdateItem(
+                key = busId,
+                attrToUpdate = BusEntityAttrUpdate.UpdateCurrentStop(
+                    value = currentBusStopName,
+                )
+            )
+        )
+
+        val nextStopItem = DynamoDbTransactWriteItem<BusEntity>(
+            putItem = null,
+            deleteItemKey = null,
+            updateItem = TransactionUpdateItem(
+                key = busId,
+                attrToUpdate = BusEntityAttrUpdate.UpdateNextStop(
+                    value = nextBusStopName,
+                )
+            )
+        )
+
+        // TODO maybe change with just name or full stop info like name and id
+        val result = dynamoDbSource.transactWriteItems(
+            items = listOf(currentStopItem, nextStopItem)
         )
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
@@ -120,7 +132,8 @@ class BusRepositoryImpl(
         val result = dynamoDbSource.updateItemAttr(
             update = BusEntityAttrUpdate.UpdateStopIds(
                 value = stopIds,
-                updateAction = updateAction
+                updateAction = updateAction,
+                keyVal = busId
             ),
             keyVal = busId
         )

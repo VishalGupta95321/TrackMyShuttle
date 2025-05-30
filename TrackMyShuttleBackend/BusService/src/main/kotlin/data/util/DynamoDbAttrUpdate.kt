@@ -18,12 +18,12 @@ sealed class BusEntityAttrUpdate(
     data class UpdateBusStatus(val value: data.model.BusStatus) : BusEntityAttrUpdate()
 
     data class UpdateStopIds(
+        val keyVal: String,
         val value: List<String>,
         private val updateAction: StopIdsUpdateAction
     ) : BusEntityAttrUpdate(updateAction.action) {
         companion object {
             sealed class StopIdsUpdateAction(val action: AttributeAction) {
-                data object Put : StopIdsUpdateAction(AttributeAction.Put)
                 data object Add : StopIdsUpdateAction(AttributeAction.Add)
                 data object Delete : StopIdsUpdateAction(AttributeAction.Delete)
             }

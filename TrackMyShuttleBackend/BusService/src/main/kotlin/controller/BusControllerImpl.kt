@@ -6,17 +6,18 @@ import data.util.BusEntityAttrUpdate.UpdateStopIds.Companion.StopIdsUpdateAction
 import data.util.GetBack
 import exceptions.BusControllerExceptions
 import model.request.BusCurrentNextStopUpdateRequest
-import model.request.BusRegistrationOrUpdateRequest
+import model.request.BusRegistrationRequest
 import model.request.BusStatusUpdateRequest
 import model.request.BusStopIdsUpdateRequest
 import model.request.BusStopIdsUpdateRequest.Companion.UpdateType
-import model.request.toBasicBus
+import model.request.BusUpdateRequest
 import model.request.toBus
 import model.response.BasicBusControllerResponse
 import model.response.BusControllerResponse
 import model.response.BusDto.Companion.fromBus
 import model.response.BusResponse
 import model.response.BusesResponse
+import model.response.UpdatedBusResponse
 
 class BusControllerImpl(
     private val busRepository: BusRepository
@@ -47,29 +48,34 @@ class BusControllerImpl(
         }
     }
 
-    override suspend fun registerBus(request: BusRegistrationOrUpdateRequest): BasicBusControllerResponse {
+    override suspend fun registerBus(request: BusRegistrationRequest): BusControllerResponse<String> {
         val result = busRepository.registerBus(request.toBus())
         return when(result) {
-            is GetBack.Success -> BusControllerResponse.Success()
+            is GetBack.Success -> BusControllerResponse.Success(result.data)
             is GetBack.Error -> result.toBusControllerErrors()
         }
     }
 
-    override suspend fun updateBusDetails(request: BusRegistrationOrUpdateRequest): BasicBusControllerResponse {
+   override suspend fun updateBusDetails(busId: String, request: BusUpdateRequest): BusControllerResponse<UpdatedBusResponse> {
+
         val result = busRepository.updateBusDetails(
-            busId = request.busId,
+            busId = busId,
             bus = request.toBasicBus()
         )
         return when(result) {
-            is GetBack.Success -> BusControllerResponse.Success()
+            is GetBack.Success -> BusControllerResponse.Success(UpdatedBusResponse(
+                driverName = request.driverName,
+                activeHours = request.activeHours,
+                activeDays = request.activeDays,
+            ))
             is GetBack.Error -> result.toBusControllerErrors()
         }
     }
 
-    override suspend fun deleteBus(busId: String): BasicBusControllerResponse {
+    override suspend fun deleteBus(busId: String): BusControllerResponse<String> {
         val result = busRepository.deleteBus(busId)
         return when(result) {
-            is GetBack.Success -> BusControllerResponse.Success()
+            is GetBack.Success -> BusControllerResponse.Success(result.data)
             is GetBack.Error -> result.toBusControllerErrors()
         }
     }
@@ -92,8 +98,8 @@ class BusControllerImpl(
         }
     }
 
-    override suspend fun updateBusStatus(request: BusStatusUpdateRequest): BasicBusControllerResponse {
-        val result = busRepository.updateBusStatus(request.busId,request.busStatus.toBusStatus())
+    override suspend fun updateBusStatus(busId: String, request: BusStatusUpdateRequest): BasicBusControllerResponse  {
+        val result = busRepository.updateBusStatus(busId,request.busStatus.toBusStatus())
         return when(result) {
             is GetBack.Success -> BusControllerResponse.Success()
             is GetBack.Error -> result.toBusControllerErrors()
@@ -101,17 +107,15 @@ class BusControllerImpl(
     }
 
     /// TODO(" update to use transactions")
-    override suspend fun updateCurrentAndNextStop(request: BusCurrentNextStopUpdateRequest): BasicBusControllerResponse {
-        val result = busRepository.updateCurrentStop(request.busId,request.currentStopName)
+    override suspend fun updateCurrentAndNextStop(busId: String, request: BusCurrentNextStopUpdateRequest): BasicBusControllerResponse {
+        val result = busRepository.updateCurrentAndNextStop(
+            busId,
+            request.currentStopName,
+            request.nextStopName,
+        )
         return when(result) {
             is GetBack.Error -> result.toBusControllerErrors()
-            is GetBack.Success -> {
-                val result = busRepository.updateNextStop(request.busId,request.nextStopName)
-                when(result) {
-                    is GetBack.Success -> BusControllerResponse.Success()
-                    is GetBack.Error -> result.toBusControllerErrors()
-                }
-            }
+            is GetBack.Success -> BusControllerResponse.Success()
         }
     }
 

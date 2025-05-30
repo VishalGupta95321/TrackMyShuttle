@@ -1,31 +1,28 @@
 package model.response
 
+import aws.smithy.kotlin.runtime.http.HttpStatusCode
 import exceptions.BusControllerExceptions
 
 data class HttpResponse<T>(
-    val code: String,
+    val code: HttpStatusCode,
     val body: T? = null,
 )
 
-// TODO("Later use the appropriate http error code but for now lets stick with just these four")
-object HttpStatusCode{
-    const val OK = "200"
-    const val BAD_REQUEST = "400"
-    const val INTERNAL_SERVER_ERROR = "500"
-    const val NOT_FOUND = "404"
-}
 
-
-fun <T> generateHttpResponse(response: BusControllerResponse<T>): HttpResponse<T> {
-    return when(response){
-        is BusControllerResponse.Success -> HttpResponse(code = HttpStatusCode.OK, body = response.data)
+fun <T> BusControllerResponse<T>.generateHttpResponse(): HttpResponse<T> {
+    return when(this){
+        is BusControllerResponse.Success -> {
+            if (this.data!=null)
+                HttpResponse(code = HttpStatusCode.OK, body = this.data)
+            else HttpResponse(code = HttpStatusCode.NoContent)
+        }
         is BusControllerResponse.Error ->  {
-            when(response.error){
-                BusControllerExceptions.SomethingWentWrong -> HttpResponse(code = HttpStatusCode.INTERNAL_SERVER_ERROR)
-                BusControllerExceptions.InvalidInput -> HttpResponse(code = HttpStatusCode.BAD_REQUEST)
-                BusControllerExceptions.ItemAlreadyExists -> HttpResponse(code = HttpStatusCode.BAD_REQUEST)
-                BusControllerExceptions.ItemNotFound -> HttpResponse(code = HttpStatusCode.NOT_FOUND)
-                BusControllerExceptions.RegistrationError -> HttpResponse(code = HttpStatusCode.INTERNAL_SERVER_ERROR)
+            when(this.error){
+                BusControllerExceptions.SomethingWentWrong -> HttpResponse(code = HttpStatusCode.InternalServerError)
+                BusControllerExceptions.InvalidInput -> HttpResponse(code = HttpStatusCode.BadRequest)
+                BusControllerExceptions.ItemAlreadyExists -> HttpResponse(code = HttpStatusCode.Conflict)
+                BusControllerExceptions.ItemNotFound -> HttpResponse(code = HttpStatusCode.NotFound)
+                BusControllerExceptions.RegistrationError -> HttpResponse(code = HttpStatusCode.InternalServerError)
             }
         }
     }

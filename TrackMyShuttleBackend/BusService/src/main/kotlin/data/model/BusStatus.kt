@@ -1,5 +1,7 @@
 package data.model
 
+import kotlinx.serialization.Serializable
+
 sealed class BusStatus(
     val value: Int
 ){

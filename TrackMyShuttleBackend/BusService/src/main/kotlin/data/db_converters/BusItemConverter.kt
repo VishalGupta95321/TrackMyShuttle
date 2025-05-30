@@ -23,7 +23,7 @@ class BusItemConverter : DbItemConverter<BusEntity> {
             BusEntityAttributes.ACTIVE_HOURS to AttributeValue.S(obj.activeHours),
             BusEntityAttributes.ACTIVE_DAYS to AttributeValue.S(obj.activeDays),
             BusEntityAttributes.BUS_STATUS to BusStatusValueConverter.convertTo(obj.busStatus),
-            BusEntityAttributes.STOP_IDS to if(obj.stopIds != null) AttributeValue.Ss(obj.stopIds) else AttributeValue.Ss(listOf(PLACEHOLDER_Stop_ID_FOR_BUS)),
+            BusEntityAttributes.STOP_IDS to if(obj.stopIds.isNotEmpty()) AttributeValue.Ss(obj.stopIds) else AttributeValue.Ss(listOf(PLACEHOLDER_Stop_ID_FOR_BUS)),
             BusEntityAttributes.CURRENT_STOP to if(obj.currentStop!=null) AttributeValue.S(obj.currentStop) else AttributeValue.Null(true),
             BusEntityAttributes.NEXT_STOP to if(obj.nextStop!=null) AttributeValue.S(obj.nextStop) else AttributeValue.Null(true),
         )
@@ -40,7 +40,7 @@ class BusItemConverter : DbItemConverter<BusEntity> {
             activeHours = attrValues[BusEntityAttributes.ACTIVE_HOURS]?.asS() ?: "",
             activeDays = attrValues[BusEntityAttributes.ACTIVE_DAYS]?.asS() ?: "",
             busStatus = attrValues[BusEntityAttributes.BUS_STATUS]?.let { BusStatusValueConverter.convertFrom(it) },
-            stopIds = attrValues[BusEntityAttributes.STOP_IDS]?.asSsOrNull()?.minus(PLACEHOLDER_Stop_ID_FOR_BUS),// asSs() ?: listOf(),
+            stopIds = attrValues[BusEntityAttributes.STOP_IDS]?.asSsOrNull()?.minus(PLACEHOLDER_Stop_ID_FOR_BUS) ?: listOf(),// asSs() ?: listOf(),
             currentStop = attrValues[BusEntityAttributes.CURRENT_STOP]?.asSOrNull(),
             nextStop =  attrValues[BusEntityAttributes.NEXT_STOP]?.asSOrNull(),
         )

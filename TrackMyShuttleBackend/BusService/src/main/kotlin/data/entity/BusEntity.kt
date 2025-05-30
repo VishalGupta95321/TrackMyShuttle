@@ -4,6 +4,7 @@ import aws.sdk.kotlin.hll.dynamodbmapper.DynamoDbPartitionKey
 import data.model.Bus
 import data.model.BusStatus
 import data.util.TableName
+import kotlinx.serialization.Serializable
 
 private const val TABLE_NAME = "BUS_TABLE"
 
@@ -15,7 +16,7 @@ data class BusEntity(
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
-    val stopIds: List<String>? = emptyList(),
+    val stopIds: List<String> = listOf(),
     val busStatus: BusStatus?,
     val currentStop: String?,
     val nextStop: String?,
@@ -28,7 +29,7 @@ data class BusEntity(
         busStatus = busStatus,
         nextStop = nextStop,
         currentStop = currentStop,
-        stopIds = stopIds ?: emptyList(),
+        stopIds = stopIds,
     )
 }
 

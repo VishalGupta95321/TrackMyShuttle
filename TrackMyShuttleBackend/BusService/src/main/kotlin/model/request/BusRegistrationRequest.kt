@@ -2,16 +2,17 @@ package model.request
 
 import data.model.BasicBusDetails
 import data.model.Bus
+import kotlinx.serialization.Serializable
 
-
-data class BusRegistrationOrUpdateRequest(
+@Serializable
+data class BusRegistrationRequest(
     val busId: String,
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
 )
 
-fun BusRegistrationOrUpdateRequest.toBus() = Bus(
+fun BusRegistrationRequest.toBus() = Bus(
     busId = busId,
     driverName = driverName,
     activeHours = activeHours,
@@ -22,7 +23,7 @@ fun BusRegistrationOrUpdateRequest.toBus() = Bus(
     nextStop = null,
 )
 
-fun BusRegistrationOrUpdateRequest.toBasicBus() = BasicBusDetails(
+fun BusRegistrationRequest.toBasicBus() = BasicBusDetails(
     driverName = driverName,
     activeHours = activeHours,
     activeDays = activeDays,

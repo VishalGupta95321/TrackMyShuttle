@@ -1,8 +1,9 @@
 package model
 
 import data.model.Location
+import kotlinx.serialization.Serializable
 
-
+@Serializable
 data class LocationDto(
     val latitude: String,
     val longitude: String,

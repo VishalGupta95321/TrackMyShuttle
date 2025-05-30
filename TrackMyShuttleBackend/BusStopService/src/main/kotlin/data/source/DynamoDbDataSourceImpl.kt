@@ -133,28 +133,57 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
             itemChunks.forEach { chunk ->
                 val transactionWriteItems = chunk.map { item ->
                     TransactWriteItem {
-                        put = item.putItem?.let {
+                        put = item.putItem?.let { item ->
+
                             Put {
                                 tableName = currentTableName
-                                this.item = itemConverter.serializeToAttrValue(it)
+                                this.item = itemConverter.serializeToAttrValue(item)
                                 conditionExpression = "attribute_not_exists($primaryKey)"
                             }
                         }
-                        delete = item.deleteItemKey?.let {
+
+                        delete = item.deleteItemKey?.let { deleteKey ->
                             Delete {
                                 tableName = currentTableName
-                                key = convertToItemKey(item.deleteItemKey)
+                                key = convertToItemKey(deleteKey)
                                 conditionExpression = "attribute_exists($primaryKey)"
                             }
+                        }
+
+                        // one attr at time
+                        update = item.updateItem?.let { updateItem ->
+
+                            val attrName = convertToAttrValUpdate(updateItem.attrToUpdate).keys.first()
+                            val attrVal = convertToAttrValUpdate(updateItem.attrToUpdate).values.first().value
+                            val updateAction = convertToAttrValUpdate(updateItem.attrToUpdate).values.first().action
+
+                            if (attrVal != null && updateAction != null) {
+                                Update {
+                                    key =  mapOf(primaryKey to AttributeValue.S(updateItem.key))
+                                    tableName = currentTableName
+                                    conditionExpression = "attribute_exists(${primaryKey})"
+                                    expressionAttributeNames = mapOf("#attribute" to attrName)
+                                    expressionAttributeValues =  mapOf(":value" to attrVal)
+                                    updateExpression = when (updateAction) {
+                                        AttributeAction.Add -> "ADD #attribute :value"
+                                        AttributeAction.Delete -> "DELETE #attribute :value"
+                                        AttributeAction.Put -> "set #attribute = :value"
+                                        else -> throw Exception()
+                                    }
+                                }
+                            } else null
                         }
                     }
                 }
                 processTransactWriteItemsRequest(createTransactWriteItemsRequest(transactionWriteItems))
             }
             return GetBack.Success()
-        }catch (e: ConditionalCheckFailedException) {
+        } catch (e: ConditionalCheckFailedException) {
             e.printStackTrace()
-            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+            return GetBack.Error(DynamoDbErrors.ConditionCheckFailed)
+        }catch (e: UnsupportedUpdateType) {
+            e.printStackTrace()
+            return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
         } catch (e: DynamoDbException) {
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
@@ -163,6 +192,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
             return GetBack.Error()
         }
     }
+
 
     private fun createTransactWriteItemsRequest(
         items: List<TransactWriteItem>
@@ -255,9 +285,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
             databaseClient.updateItem(updateRequest)
             return GetBack.Success()
 
-        } catch (e: ConditionalCheckFailedException) {
-            e.printStackTrace()
-            return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
         } catch (e: DynamoDbException) {
             e.printStackTrace()
             if (e.localizedMessage == "Type mismatch for attribute to update")
@@ -331,11 +358,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
         return when (update) {
             is BusStopEntityAttrUpdate -> {
                 when (update) {
-                    /// rest of the branches
-                    else -> throw UnsupportedUpdateType()
+                        is BusStopEntityAttrUpdate.UpdateBusId -> convertToAttrValUpdate(
+                            BusStopEntityAttributes.BUS_IDS,
+                            AttributeValue.Ss(listOf(update.value)),
+                            update.action
+                        )
                 }
             }
-
             else -> throw UnsupportedUpdateType()
         }
     }

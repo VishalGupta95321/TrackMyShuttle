@@ -6,9 +6,11 @@ import data.model.BusStopScanned
 import data.source.DynamoDbDataSource
 import di.MainModule
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import model.LocationDto
 import model.request.AddBusStopRequest
-import model.request.GetBusStopsByAddressSubstringRequest
 import model.request.UpdateBusStopRequest
 import model.response.BusStopControllerResponse
 import model.response.BusStopDto
@@ -18,51 +20,50 @@ import org.koin.java.KoinJavaComponent.inject
 
 const val INDEX = "BUS_STOP_ADDRESS_INDEX"
 
-fun demoData() =  listOf(
-    AddBusStopRequest(
-        listOf(
-            BusStopDto(
-                stopID = "BS001",
-                stopName = "Main Street Stop",
-                address = "123 Main St",
-                location = LocationDto("37.7749", "-122.4194")
-            )
-        )
-    ),
-      AddBusStopRequest(
-        listOf(
-            BusStopDto(
-                stopID = "BS002",
-                stopName = "Park Avenue Stop",
-                address = "456 Park Ave",
-                location = LocationDto("40.7128", "-74.0060")
-            ),
-            BusStopDto(
-                stopID = "BS004",
-                stopName = "Central Station Stop",
-                address = "901 Central Station",
-                location = LocationDto("51.5074", "-0.1278")
-            )
-        )
-    ),
-    AddBusStopRequest(
-        listOf(
-            BusStopDto(
-                stopID = "BS005",
-                stopName = "Downtown Stop",
-                address = "234 Downtown Dr",
-                location = LocationDto("29.7604", "-95.3698")
-            ),
-            BusStopDto(
-                stopID = "BS006",
-                stopName = "Uptown Stop",
-                address = "567 Uptown Blvd",
-                location = LocationDto("30.2672", "-97.7431")
-            )
-        )
-    )
-)
-
+//fun demoData() =  listOf(
+//    AddBusStopRequest(
+//        listOf(
+//            BusStopDto(
+//                stopID = "BS001",
+//                stopName = "Main Street Stop",
+//                address = "123 Main St",
+//                location = LocationDto("37.7749", "-122.4194")
+//            )
+//        )
+//    ),
+//      AddBusStopRequest(
+//        listOf(
+//            BusStopDto(
+//                stopID = "BS002",
+//                stopName = "Park Avenue Stop",
+//                address = "456 Park Ave",
+//                location = LocationDto("40.7128", "-74.0060")
+//            ),
+//            BusStopDto(
+//                stopID = "BS004",
+//                stopName = "Central Station Stop",
+//                address = "901 Central Station",
+//                location = LocationDto("51.5074", "-0.1278")
+//            )
+//        )
+//    ),
+//    AddBusStopRequest(
+//        listOf(
+//            BusStopDto(
+//                stopID = "BS005",
+//                stopName = "Downtown Stop",
+//                address = "234 Downtown Dr",
+//                location = LocationDto("29.7604", "-95.3698")
+//            ),
+//            BusStopDto(
+//                stopID = "BS006",
+//                stopName = "Uptown Stop",
+//                address = "567 Uptown Blvd",
+//                location = LocationDto("30.2672", "-97.7431")
+//            )
+//        )
+//    )
+//)
 
 
 suspend fun queryRequest(db: DynamoDbClient){
@@ -96,7 +97,32 @@ suspend fun queryRequest(db: DynamoDbClient){
 
 }
 
+
+@Serializable
+sealed class UpdateTyype() {
+    @Serializable
+    data object Add: UpdateTyype()
+    @Serializable
+    data object Remove: UpdateTyype()
+}
+@Serializable
+data class Test(
+    val stopIds: List<String>,
+    val updateType: UpdateTyype,
+)
+
+fun sir(){
+    val a = "{\"stopIds\":[\"Stop1\",\"Stop2\",\"Stop3\"],\"updateType\":{\"type\":\"UpdateTyype.Add\"}}"
+
+    println(Json.decodeFromString<Test>(a))
+
+}
+
 fun main (){
+
+
+
+    sir()
 
     startKoin {
         modules(MainModule)
@@ -139,16 +165,24 @@ fun main (){
 //        eval(11, controller.getBusStop("BS001"))
        ////// eval(12, controller.getBusStop("BS006"))
         //queryRequest(db)
-        eval(1, controller.addBusStop(demoData()[0]))
-        eval(10, controller.updateBusStop(UpdateBusStopRequest( BusStopDto(
-            stopID = "BS0rdddrr89",
-            stopName = "Uptown Stop",
-            address = "567 Uptown Blvd",
-            location = LocationDto("30.2672", "-97.7431")
-        ))))
-        eval(8, controller.deleteBusStop(listOf("BS","hkxbwa")))
-        eval(13, controller.getBusStopsByAddressSubstring(GetBusStopsByAddressSubstringRequest("123")))
-        eval(14, controller.getBusStops(listOf("BS005","BS006","texpkkasda")))
+
+        ////////////////////
+//        eval(1, controller.addBusStop(demoData()[0]))
+//        eval(10, controller.updateBusStop(UpdateBusStopRequest( BusStopDto(
+//            stopID = "BS0rdddrr89",
+//            stopName = "Uptown Stop",
+//            address = "567 Uptown Blvd",
+//            location = LocationDto("30.2672", "-97.7431")
+//        ))))
+//        eval(8, controller.deleteBusStop(listOf("BS","hkxbwa")))
+//        eval(13, controller.getBusStopsByAddressSubstring(GetBusStopsByAddressSubstringRequest("123")))
+//        eval(14, controller.getBusStops(listOf("BS005","BS006","texpkkasda")))
+        /////////////////
+
+        val set1  = setOf("Bus1", "Bus2", "Bus3", "Bus4", "Bus5", "Bus6")
+        val set2 = setOf("Bus1", "Bus3", "Bus5")
+
+        println(set1.intersect(set2))
     }
 }
 

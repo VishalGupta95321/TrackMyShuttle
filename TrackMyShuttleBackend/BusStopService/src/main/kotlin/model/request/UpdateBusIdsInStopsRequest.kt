@@ -1,22 +1,20 @@
 package model.request
 
 import kotlinx.serialization.Serializable
-import util.CustomBusStatusDtoSerializer
 import util.CustomUpdateTypeSerializer
 
-@Serializable()
-data class BusStopIdsUpdateRequest(
+
+@Serializable
+data class UpdateBusIdsInStopsRequest(
     val busId: String,
     val stopIds: List<String>,
     val updateType: UpdateType
 ){
-
     companion object {
         @Serializable(with = CustomUpdateTypeSerializer::class)
         sealed interface UpdateType {
-            object Add: UpdateType
-            object Remove: UpdateType
+            data object Add: UpdateType
+            data object Remove: UpdateType
         }
     }
 }
-

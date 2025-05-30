@@ -1,9 +1,12 @@
 package model.response
 
 import data.model.Bus
+import kotlinx.serialization.Serializable
 import model.BusStatusDto
 import model.BusStatusDto.Companion.fromBusStatus
+import util.CustomBusStatusDtoSerializer
 
+@Serializable
 data class BusDto(
     val busId:String,
     val driverName: String,
@@ -30,6 +33,7 @@ data class BusDto(
     }
 }
 
+@Serializable
 data class BusResponse(
     val bus: BusDto
 )

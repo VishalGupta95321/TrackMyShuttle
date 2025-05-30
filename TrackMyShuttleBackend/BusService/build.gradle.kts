@@ -9,6 +9,7 @@ val awsSdkVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
     id("aws.sdk.kotlin.hll.dynamodbmapper.schema.generator") version "1.3.76-beta"
 }
 
@@ -28,9 +29,6 @@ dynamoDbMapper {
 
 dependencies {
     testImplementation(kotlin("test"))
-
-    // Serialization
-    implementation("com.google.code.gson:gson:2.11.0")
 
     // DynamoDb
     implementation("aws.sdk.kotlin:dynamodb:$awsSdkVersion")
@@ -54,13 +52,16 @@ dependencies {
     // kotlin reflect
     implementation(kotlin("reflect"))
 
+    // KotlinXSerialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+
 }
 
 // To set the main class
 tasks.jar {
     manifest {
         attributes(
-            "Main-Class" to "request_handler.SimpleHandler"
+            "Main-Class" to "request_handler.BusServiceHandler"
         )
     }
 }

@@ -1,7 +1,10 @@
 package model
 
 import data.model.BusStatus
+import kotlinx.serialization.Serializable
+import util.CustomBusStatusDtoSerializer
 
+@Serializable(with = CustomBusStatusDtoSerializer::class)
 sealed interface BusStatusDto{
     data object Active: BusStatusDto
     data object InActive: BusStatusDto

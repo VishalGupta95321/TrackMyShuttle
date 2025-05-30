@@ -14,6 +14,6 @@ fun BusStop.toBusStopEntity(): BusStopEntity {
         stopId = stopId,
         stopName = stopName,
         address = address,
-        location = location
+        location = location,
     )
 }

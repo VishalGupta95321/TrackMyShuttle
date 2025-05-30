@@ -1,9 +1,10 @@
-package model.response
+package model.request
 
 import kotlinx.serialization.Serializable
+import model.response.BusStopDto
 
 
 @Serializable
-data class BusStopsResponse(
+data class BatchAddBusStopRequest(
     val busStops: List<BusStopDto>
 )

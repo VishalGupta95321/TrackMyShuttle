@@ -1,7 +1,6 @@
 package di
 
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
-import com.google.gson.Gson
 import controller.BusController
 import controller.BusControllerImpl
 import data.db_converters.BusItemConverter
@@ -14,6 +13,7 @@ import data.util.ClassIntrospector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
@@ -52,8 +52,8 @@ val MainModule = module  {
         CoroutineScope(Dispatchers.Default + SupervisorJob())
     }
 
-    single<Gson>{
-        Gson()
+    single<Json>{
+        Json{ignoreUnknownKeys = true}
     }
 
 }

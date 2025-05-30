@@ -10,23 +10,19 @@ import data.util.BusRepoResult
 interface BusRepository {
     suspend fun fetchBusByBusId(busId: String): BusRepoResult<Bus>
 
-    // TODO this one is for Route Service
-    // suspend fun fetchBusIdsByRouteId(routeId: String): BusRepoResult<List<String>>
+    suspend fun fetchBusesByIds(busIds: List<String>):BusRepoResult<List<Bus>>
 
+    suspend fun registerBus(bus: Bus): BusRepoResult<String>
+    suspend fun updateBusDetails(busId: String,bus: BasicBusDetails): BusRepoResult<BasicBusDetails>
+    suspend fun deleteBus(busId: String): BusRepoResult<String>
 
-    suspend fun fetchBusesByIds(busIds: List<String>):BusRepoResult<List<Bus>> /// end request with timeout in case fetching takes longer or in a deadlock
+    suspend fun updateBusStatus(busId: String, status: BusStatus): BasicBusRepoResult
 
-    suspend fun registerBus(bus: Bus): BasicBusRepoResult // will call another lambda function
-
-    suspend fun updateBusDetails(busId: String,bus: BasicBusDetails): BasicBusRepoResult
-
-    suspend fun deleteBus(busId: String): BasicBusRepoResult
-
-    suspend fun updateBusStatus(busId: String, status: BusStatus): BasicBusRepoResult // select where id == someId then update busStatus.
-
-    suspend fun updateCurrentStop(busId: String, currentBusStopId: String): BasicBusRepoResult
-
-    suspend fun updateNextStop(busId: String,nextBusStopId: String): BasicBusRepoResult
+    suspend fun updateCurrentAndNextStop(
+        busId: String,
+        currentBusStopName: String,
+        nextBusStopName: String
+    ): BasicBusRepoResult
 
     suspend fun updateStopIds(busId: String, stopIds: List<String>,  updateAction: StopIdsUpdateAction): BasicBusRepoResult
 

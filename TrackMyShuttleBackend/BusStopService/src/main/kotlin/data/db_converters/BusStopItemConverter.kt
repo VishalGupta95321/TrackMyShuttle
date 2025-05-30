@@ -6,6 +6,8 @@ import data.entity.BusStopEntity
 import data.entity.BusStopEntityAttributes
 import data.model.Location
 
+private const val PLACEHOLDER_BUS_ID_FOR_BUS_STOP = "NONE"
+
 
 class BusStopItemConverter : DbItemConverter<BusStopEntity> {
 
@@ -18,7 +20,8 @@ class BusStopItemConverter : DbItemConverter<BusStopEntity> {
             BusStopEntityAttributes.STOP_NAME to AttributeValue.S(obj.stopName),
             BusStopEntityAttributes.ADDRESS to AttributeValue.S(obj.address),
             BusStopEntityAttributes.LOCATION to LocationValueConverter.convertTo(obj.location),
-        )
+            BusStopEntityAttributes.BUS_IDS to if(obj.busIds.isNotEmpty()) AttributeValue.Ss(obj.busIds) else AttributeValue.Ss(listOf(PLACEHOLDER_BUS_ID_FOR_BUS_STOP)),
+            )
     }
 
     @OptIn(ExperimentalApi::class)
@@ -30,6 +33,8 @@ class BusStopItemConverter : DbItemConverter<BusStopEntity> {
             stopName = attrValues[BusStopEntityAttributes.STOP_NAME]?.asS() ?: "",
             address = attrValues[BusStopEntityAttributes.ADDRESS]?.asS() ?: "",
             location = attrValues[BusStopEntityAttributes.LOCATION]?.let { LocationValueConverter.convertFrom(it)} ?: throw IllegalArgumentException("Missing location"),
+            busIds = attrValues[BusStopEntityAttributes.BUS_IDS]?.asSsOrNull()?.minus(PLACEHOLDER_BUS_ID_FOR_BUS_STOP)  ?: listOf(),
+
         )
     }
 }

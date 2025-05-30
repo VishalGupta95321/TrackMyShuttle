@@ -1,7 +1,9 @@
 package model.request
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class BusCurrentNextStopUpdateRequest(
-    val busId: String,
     val currentStopName: String,
     val nextStopName: String,
 )

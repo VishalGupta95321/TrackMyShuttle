@@ -10,4 +10,5 @@ sealed interface DynamoDbErrors {
     data object ItemDoesNotExists: DynamoDbErrors
     data object ItemAlreadyExists: DynamoDbErrors
     data object TypeMismatchForAttribute: DynamoDbErrors
+    data object ConditionCheckFailed: DynamoDbErrors
 }
