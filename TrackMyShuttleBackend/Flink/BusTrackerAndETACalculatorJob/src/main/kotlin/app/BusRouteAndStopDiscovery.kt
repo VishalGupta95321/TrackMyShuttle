@@ -14,7 +14,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 private const val MAX_TIME_INTERVAL_BETWEEN_COORDINATES_IN_LIST_IN_SEC = 20L
-private const val MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS = 150L
+private const val MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS = 100L
 private const val BUS_STOP_RADIUS_IN_METERS = 100L
 private const val MAX_GPS_ERROR_IN_METERS = 20L
 private const val INDEX_ZERO = 0
@@ -38,9 +38,9 @@ data class BusDiscoveryResult(
     val isReturning: Boolean
 )
 
-class BusPathDiscovery {
+class BusRouteAndStopDiscovery {
 
-    private fun findNextLastStopAndIfIsReturningFromScratch(
+    fun findNextLastStopAndIfIsReturningFromScratch(
         routeType: RouteType,
         routes: List<Route>,
         busStops: List<BusStop>,
@@ -62,7 +62,7 @@ class BusPathDiscovery {
         val stop1Index = busStops.indexOf(stop1)
 
         val stop2 = currentRoute.toStopId.let { stopId -> busStops.find { it.stopId == stopId } }
-        val stop2Index = busStops.indexOf(stop1)
+        val stop2Index = busStops.indexOf(stop2)
 
         val currentStop1 = stop1Index to stop1!!
         val currentStop2 = stop2Index to stop2!!
@@ -97,11 +97,13 @@ class BusPathDiscovery {
             )
 
         if (stop1DistanceFromLastPoint < stop1DistanceFromFirstPoint) {
+            println("Here 1")
             nextStopIndex = currentStop1.first
             lastPassedStopIndex = currentStop2.first
             isReturning = checkIfBusIsReturning(routeType, nextStopIndex, lastPassedStopIndex)
         }
         if (stop2DistanceFromLastPoint < stop2DistanceFromFirstPoint) {
+            println("Here 2")
             nextStopIndex = currentStop2.first
             lastPassedStopIndex = currentStop1.first
             isReturning = checkIfBusIsReturning(routeType, nextStopIndex, lastPassedStopIndex)
@@ -116,6 +118,7 @@ class BusPathDiscovery {
                 checkIfCurrentPointIsWithinBusStopRadius(coord, currentStop2.second.coordinates)
 
             if (isCurrentPointIsWithinStop1Radius) {
+                println(" Bus Crossed the Stop")
                 lastPassedStopIndex = currentStop1.first
                 nextStopIndex = getNextStopIndex(
                     currentStopIndex = currentStop1.first,
@@ -133,6 +136,7 @@ class BusPathDiscovery {
             }
 
             if (isCurrentPointIsWithinStop2Radius) {
+                println(" Bus Crossed the Stop")
                 lastPassedStopIndex = currentStop2.first
                 nextStopIndex = getNextStopIndex(
                     currentStopIndex = currentStop2.first,
@@ -154,7 +158,7 @@ class BusPathDiscovery {
     }
 
     // Only get called if already know the values required in the function's arguments
-    private fun getNextStopIndex(
+    fun getNextStopIndex(
         currentStopIndex: Int,
         totalBusStopsIndex: Int,
         routeType: RouteType,
@@ -173,7 +177,7 @@ class BusPathDiscovery {
                     currentStopIndex - 1 to true
                 }
                 if (isReturning) {
-                    currentStopIndex - 1 to false
+                    currentStopIndex - 1 to true //false
                 } else currentStopIndex + 1 to false
             }
         }
@@ -185,6 +189,9 @@ class BusPathDiscovery {
         lastStopIndex: Int,
     ): Boolean {
         return if (routeType is RouteType.OutAndBack) {
+            println("Next or reached -- $nextOrReachedStopIndex")
+            println("Last -- $lastStopIndex")
+
             nextOrReachedStopIndex < lastStopIndex
         } else false
     }
@@ -252,7 +259,7 @@ class BusPathDiscovery {
         )
     }
 
-    private fun checkIfCurrentPointIsWithinBusStopRadius(
+    fun checkIfCurrentPointIsWithinBusStopRadius(
         currentPoint: Coordinate,
         busStopPoint: Coordinate,
     ): Boolean {
@@ -267,13 +274,13 @@ class BusPathDiscovery {
 
     /// Clearing the recent coord list if the first point in the list is within Stop radius.
     fun clearRecentCoordinatesIfFirstPointIsWithinStopRadius(
-        recentCoordinates: List<Pair<TimeStamp, Coordinate>>,
+        recentCoordinates: List<Coordinate>,
         busStops: List<BusStop>,
     ): Boolean {
         recentCoordinates.isNotEmpty().let {
             busStops.forEach { stop ->
                 val result = checkIfCurrentPointIsWithinBusStopRadius(
-                    currentPoint = recentCoordinates.first().second,
+                    currentPoint = recentCoordinates.first(),
                     busStopPoint = stop.coordinates
                 )
                 if (result) { return true }
@@ -315,45 +322,3 @@ class BusPathDiscovery {
         return distanceInMeters >= MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS
     }
 }
-
-
-//
-//when (routeType) {
-//
-//    RouteType.Loop -> {
-//        if (currRouteStop1.first == totalBusStopsIndex && currRouteStop2.first == 0 ||
-//            currRouteStop2.first == totalBusStopsIndex && currRouteStop1.first == 0
-//        ) {
-//            nextStopIndex = 0
-//            lastPassedStopIndex = totalBusStopsIndex
-//        }
-//
-//        if (currRouteStop1.first < currRouteStop2.first) {
-//            lastPassedStopIndex = currRouteStop1.first
-//            nextStopIndex = currRouteStop2.first
-//        } else {
-//            lastPassedStopIndex = currRouteStop2.first
-//            nextStopIndex = currRouteStop1.first
-//        }
-//
-//        /// It's going to be always false because the bus is running in the Loop in the same direction.
-//        isReturning = false
-//    }
-//
-//    RouteType.OutAndBack -> {
-//        if (stop1DistanceFromLastPoint < stop1DistanceFromFirstPoint) {
-//            nextStopIndex = currRouteStop1.first
-//            lastPassedStopIndex = currRouteStop2.first
-//            isReturning = if (routeType is RouteType.OutAndBack){
-//                nextStopIndex < lastPassedStopIndex
-//            } else false
-//        }
-//        if (stop2DistanceFromLastPoint < stop2DistanceFromFirstPoint) {
-//            nextStopIndex = currRouteStop2.first
-//            lastPassedStopIndex = currRouteStop1.first
-//            isReturning = if (routeType is RouteType.OutAndBack){
-//                nextStopIndex < lastPassedStopIndex
-//            } else false
-//        }
-//    }
-//}
