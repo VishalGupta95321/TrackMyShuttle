@@ -8,9 +8,3 @@ data class KafkaSourceConfiguration<T>(
     val topic: String,
     val deserializer: DeserializationSchema<T>,
 )
-
-data class KafkaSinkConfiguration<T>(
-    val bootstrapServers: String,
-    val topic: String,
-    val serializer: SerializationSchema<T>,
-)

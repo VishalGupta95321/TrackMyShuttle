@@ -51,6 +51,8 @@ class BusRouteAndStopDiscovery {
         var isReturning: Boolean? = false
 
         val totalBusStopsIndex = busStops.size - 1
+
+        /// We are taking the current route acc. to the first point in the recent coord list or when the bus first showed up.
         val currentRoute =
             getPointInRouteFromScratch(recentCoordinates.first(), routes)?.routeId.let { id ->
                 routes.find { it.routeId == id }
@@ -309,12 +311,12 @@ class BusRouteAndStopDiscovery {
     //// Checking if we have enough recent coordinates
     //// We will call findNextLastStopAndIfIsReturningFromScratch() after this function
     fun checkIfCoordinatesListCoveredTotalDistance(
-        recentCoordinates: List<Pair<TimeStamp, Coordinate>>,
+        recentCoordinates: List<Coordinate>,
     ): Boolean {
         if (recentCoordinates.size < 2) return false
 
         val points = recentCoordinates.map {
-            Point.fromLngLat(it.second.longitude.toDouble(), it.second.latitude.toDouble())
+            Point.fromLngLat(it.longitude.toDouble(), it.latitude.toDouble())
         }
         val lineString = LineString.fromLngLats(points)
         val distanceInMeters = TurfMeasurement.length(lineString, "meters")

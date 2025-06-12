@@ -1,0 +1,758 @@
+import app.*
+import com.mapbox.geojson.LineString
+import com.mapbox.geojson.Point
+import com.mapbox.turf.TurfConstants
+import com.mapbox.turf.TurfMeasurement
+import com.mapbox.turf.TurfMisc
+import models.BusStop
+import models.Coordinate
+import models.Route
+import models.toPoint
+import util.RouteType
+import kotlin.math.log
+import kotlin.math.pow
+import kotlin.math.sqrt
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
+
+
+
+
+
+
+//// ** I don't think we need drivers to set route manually, just getting stops and route type would be enough.
+///// ** Give driver an option to Mark Bus Active/InActive/InMaintenance, when they Activate the bus they have to enter Next and last next stop.
+///// So we can update that data initially.
+///// In BUS STOP you may also ask the stop radius.
+////// While receiving no bus location data in the app on the tracking screen then SHOW loading screen like "Location the Bus.... Waiting for bus to come online."
+// something like that ALSO in between also check if bus went INACTIVE is that the case tell the user bus is Inactive and return to the home screen.
+
+
+
+
+
+import kotlin.math.*
+import java.util.concurrent.TimeUnit
+
+
+//fun generateRecentCoordinatesAlongRoute(
+//    route: List<Coordinate>,
+//    startTimestampMillis: Long = System.currentTimeMillis(),
+//    maxTimeGapSeconds: Long = 15,
+//    minTotalDistanceMeters: Double = 100.0
+//): List<Pair<Long, Coordinate>> {
+//    val result = mutableListOf<Pair<Long, Coordinate>>()
+//
+//    var totalDistance = 0.0
+//    var currentTime = startTimestampMillis
+//
+//    for (i in 0 until route.lastIndex) {
+//        val from = route[i]
+//        val to = route[i + 1]
+//
+//        val segmentDistance = haversineDistanceMeters(
+//            from.latitude.toDouble(), from.longitude.toDouble(),
+//            to.latitude.toDouble(), to.longitude.toDouble()
+//        )
+//
+//        if (segmentDistance <= 0.0) continue
+//
+//        // Subdivide segment into ~10m steps
+//        val steps = max(1, (segmentDistance / 10).toInt())
+//
+//        for (j in 1..steps) {
+//            val ratio = j.toDouble() / (steps + 1)
+//            val lat = from.latitude.toDouble() + (to.latitude.toDouble() - from.latitude.toDouble()) * ratio
+//            val lon = from.longitude.toDouble() + (to.longitude.toDouble() - from.longitude.toDouble()) * ratio
+//
+//            val snappedCoord = Coordinate(lat.toString(), lon.toString())
+//            result.add(currentTime to snappedCoord)
+//
+//            // Update time
+//            currentTime += TimeUnit.SECONDS.toMillis((5..maxTimeGapSeconds.toInt()).random().toLong())
+//
+//            // Update distance
+//            totalDistance += segmentDistance / (steps + 1)
+//
+//            if (totalDistance >= minTotalDistanceMeters) {
+//                return result
+//            }
+//        }
+//    }
+//
+//    return result // May be less if segment too short
+//}
+
+
+import kotlin.math.*
+
+//fun generateRecentCoordinatesFromSegment(
+//    segment: List<Coordinate>,
+//    busStops: List<BusStop>,
+//    startTimestampMillis: Long = System.currentTimeMillis(),
+//    maxTimeGapSeconds: Long = 15,
+//    minTotalDistanceMeters: Double = 100.0,
+//    busStopRadiusMeters: Double = 100.0
+//): List<Pair<Long, Coordinate>> {
+//    val output = mutableListOf<Pair<Long, Coordinate>>()
+//    var currentTime = startTimestampMillis
+//    var totalDistance = 0.0
+//
+//    for (i in 0 until segment.lastIndex) {
+//        val start = segment[i]
+//        val end = segment[i + 1]
+//
+//        val startLat = start.latitude.toDouble()
+//        val startLon = start.longitude.toDouble()
+//        val endLat = end.latitude.toDouble()
+//        val endLon = end.longitude.toDouble()
+//
+//        val segmentDistance = haversineDistanceMeters(startLat, startLon, endLat, endLon)
+//        if (segmentDistance <= 0.0) continue
+//
+//        val interpolations = max(1, (segmentDistance / 10).toInt()) // finer steps every ~10 meters
+//        for (j in 1..interpolations) {
+//            val fraction = j.toDouble() / (interpolations + 1)
+//            val lat = startLat + (endLat - startLat) * fraction
+//            val lon = startLon + (endLon - startLon) * fraction
+//            val coord = Coordinate(lat.toString(), lon.toString())
+//
+//            // Check if this point is far enough from all bus stops
+//            val isFarFromAllStops = busStops.all { stop ->
+//                val stopLat = stop.coordinates.latitude.toDouble()
+//                val stopLon = stop.coordinates.longitude.toDouble()
+//                val dist = haversineDistanceMeters(lat, lon, stopLat, stopLon)
+//                dist >= busStopRadiusMeters
+//            }
+//
+//            if (isFarFromAllStops) {
+//                output.add(currentTime to coord)
+//                currentTime += TimeUnit.SECONDS.toMillis((5..maxTimeGapSeconds.toInt()).random().toLong())
+//                totalDistance += segmentDistance / (interpolations + 1)
+//
+//                if (totalDistance >= minTotalDistanceMeters) {
+//                    return output
+//                }
+//            }
+//        }
+//    }
+//
+//    return output // May be less if not enough valid distance
+//}
+//
+// // Haversine formula
+//fun haversineDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+//    val R = 6371000.0 // Earth radius in meters
+//    val dLat = Math.toRadians(lat2 - lat1)
+//    val dLon = Math.toRadians(lon2 - lon1)
+//    val a = sin(dLat / 2).pow(2.0) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2.0)
+//    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+//    return R * c
+//}
+
+
+
+
+
+import kotlin.math.*
+
+fun generateRecentCoordinatesFromSegment(
+    segment: List<Coordinate>,
+    busStops: List<BusStop>,
+    startTimestampMillis: Long = System.currentTimeMillis(),
+    maxTimeGapSeconds: Long = 15,
+    minTotalDistanceMeters: Double = 100.0,
+    busStopRadiusMeters: Double = 100.0
+): List<Pair<Long, Coordinate>> {
+    val output = mutableListOf<Pair<Long, Coordinate>>()
+    var currentTime = startTimestampMillis
+    var totalDistance = 0.0
+    var firstPointAdded = false
+
+    for (i in 0 until segment.lastIndex) {
+        val start = segment[i]
+        val end = segment[i + 1]
+
+        val startLat = start.latitude.toDouble()
+        val startLon = start.longitude.toDouble()
+        val endLat = end.latitude.toDouble()
+        val endLon = end.longitude.toDouble()
+
+        val segmentDistance = haversineDistanceMeters(startLat, startLon, endLat, endLon)
+        if (segmentDistance <= 0.0) continue
+
+        val interpolations = max(1, (segmentDistance / 10).toInt()) // ~10 meters apart
+        for (j in 1..interpolations) {
+            val fraction = j.toDouble() / (interpolations + 1)
+            val lat = startLat + (endLat - startLat) * fraction
+            val lon = startLon + (endLon - startLon) * fraction
+            val coord = Coordinate(lat.toString(), lon.toString())
+
+            // Only check bus stop proximity for the FIRST point
+            if (!firstPointAdded) {
+                val isFarFromAllStops = busStops.all { stop ->
+                    val stopLat = stop.coordinates.latitude.toDouble()
+                    val stopLon = stop.coordinates.longitude.toDouble()
+                    val dist = haversineDistanceMeters(lat, lon, stopLat, stopLon)
+                    dist >= busStopRadiusMeters
+                }
+
+                if (!isFarFromAllStops) continue // skip and keep looking
+            }
+
+            output.add(currentTime to coord)
+            currentTime += TimeUnit.SECONDS.toMillis((5..maxTimeGapSeconds.toInt()).random().toLong())
+            totalDistance += segmentDistance / (interpolations + 1)
+
+            if (!firstPointAdded) firstPointAdded = true
+
+            if (totalDistance >= minTotalDistanceMeters) return output
+        }
+    }
+
+    return output
+}
+
+// Haversine formula
+fun haversineDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val R = 6371000.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLon = Math.toRadians(lon2 - lon1)
+    val a = sin(dLat / 2).pow(2.0) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2.0)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+}
+
+
+fun formatCoordinatesForExport(coords: List<Coordinate>, color: String = "#0000FF"): List<String> {
+    return coords.mapIndexed { index, coord ->
+        "${coord.latitude},${coord.longitude},P${index + 1},$color"
+    }
+}
+
+
+
+
+
+//// Testing findNextLastStopAndIfIsReturningFromScratch() ///// SUCCESS
+@OptIn(ExperimentalTime::class)
+fun main(){
+    val routeS0S1 = listOf(
+        Coordinate("40.755997", "-73.940509"),
+        Coordinate("40.75629", "-73.940229"),
+        Coordinate("40.756307", "-73.940212"),
+        Coordinate("40.756487", "-73.94004"),
+        Coordinate("40.756835", "-73.93972"),
+        Coordinate("40.756886", "-73.939673"),
+        Coordinate("40.75693", "-73.939633"),
+        Coordinate("40.756985", "-73.939582"),
+        Coordinate("40.757432", "-73.939163"),
+        Coordinate("40.757503", "-73.939097"),
+        Coordinate("40.757573", "-73.939028"),
+        Coordinate("40.758006", "-73.9386"),
+        Coordinate("40.758404", "-73.938217"),
+        Coordinate("40.758615", "-73.938014"),
+        Coordinate("40.758652", "-73.937978"),
+        Coordinate("40.758722", "-73.937911"),
+        Coordinate("40.758785", "-73.93785"),
+        Coordinate("40.759258", "-73.937391"),
+        Coordinate("40.759403", "-73.93725"),
+        Coordinate("40.759605", "-73.937056"),
+        Coordinate("40.759817", "-73.936854"),
+        Coordinate("40.759874", "-73.936801"),
+        Coordinate("40.759889", "-73.936787"),
+        Coordinate("40.759836", "-73.936675"),
+        Coordinate("40.759504", "-73.935966"),
+        Coordinate("40.759466", "-73.935882"),
+        Coordinate("40.759436", "-73.935814"),
+        Coordinate("40.759275", "-73.935484"),
+        Coordinate("40.759106", "-73.935157"),
+        Coordinate("40.759064", "-73.935066"),
+        Coordinate("40.759034", "-73.935002"),
+        Coordinate("40.758702", "-73.93426")
+    ).let {
+        Route(
+            "1",
+            "1",
+            1,
+            "S0",
+            "S1",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val routeS1S2 = listOf(
+        Coordinate("40.758702", "-73.93426"),
+        Coordinate("40.758639", "-73.934309"),
+        Coordinate("40.75797", "-73.934922")
+    ).let {
+        Route(
+            "1",
+            "2",
+            1,
+            "S1",
+            "S2",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val routeS2S3 = listOf(
+        Coordinate("40.75797", "-73.934922"),
+        Coordinate("40.757489", "-73.935363"),
+        Coordinate("40.757451", "-73.935389"),
+        Coordinate("40.757393", "-73.935465"),
+        Coordinate("40.757354", "-73.935542"),
+        Coordinate("40.756611", "-73.936215"),
+        Coordinate("40.756326", "-73.936473"),
+        Coordinate("40.756277", "-73.936518"),
+        Coordinate("40.756212", "-73.936581"),
+        Coordinate("40.756152", "-73.936636")
+    ).let {
+        Route(
+            "1",
+            "3",
+            1,
+            "S2",
+            "S3",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val routeS3S4 = listOf(
+        Coordinate("40.756152", "-73.936636"),
+        Coordinate("40.755221", "-73.937493"),
+        Coordinate("40.75516", "-73.937549"),
+        Coordinate("40.755127", "-73.937485")
+    ).let {
+        Route(
+            "1",
+            "4",
+            1,
+            "S3",
+            "S4",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    /// **
+    val routeS4S5 = listOf(
+        Coordinate("40.755127", "-73.937485"),
+        Coordinate("40.75265", "-73.93982")
+    ).let {
+        Route(
+            "1",
+            "5",
+            1,
+            "S4",
+            "S5",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    // **
+//    val routeS4S0 = listOf(
+//        Coordinate("40.755127", "-73.937485"),
+//        Coordinate("40.755997", "-73.940509")
+//    ).let {
+//        Route(
+//            "1",
+//            "5",
+//            1,
+//            "S4",
+//            "S0",
+//            coordinates = it,
+//            Duration.ZERO,
+//            "d2e2d2e"
+//        )
+//    }
+
+    val busStops = listOf(
+        BusStop(
+            stopId = "S0",
+            coordinates = routeS0S1.coordinates.first()
+        ),
+        BusStop(
+            stopId = "S1",
+            coordinates = routeS0S1.coordinates.last()
+        ),
+        BusStop(
+            stopId = "S2",
+            coordinates = routeS1S2.coordinates.last()
+        ),
+        BusStop(
+            stopId = "S3",
+            coordinates =  routeS2S3.coordinates.last()
+        ),
+        BusStop(
+            stopId = "S4",
+            coordinates =  routeS3S4.coordinates.last()
+        ),
+        //***
+        BusStop(
+            stopId = "S5",
+            coordinates =  routeS4S5.coordinates.last()
+        )
+    )
+
+    var r  =  generateRecentCoordinatesFromSegment(routeS4S5.coordinates.reversed(),busStops).map { it.second }
+    println(r)
+
+
+    val result = BusRouteAndStopDiscovery().findNextLastStopAndIfIsReturningFromScratch(
+        RouteType.OutAndBack,  //// it cant be loop because in the route list there is no route between first and last stop.
+        listOf(routeS0S1, routeS1S2, routeS2S3, routeS3S4, routeS4S5),
+        busStops,
+       r
+    )
+    println(formatCoordinatesForExport( r,"#FFFF00"))
+    println("Distance between S2 and S3 = ${TurfMeasurement.distance(busStops[2].coordinates.toPoint(),busStops[3].coordinates.toPoint(), TurfConstants.UNIT_METERS)}")
+    println("Distance between S3 and and last interpolated point  = ${TurfMeasurement.distance(Coordinate("40.757083818182","-73.935786727273").toPoint(),busStops[3].coordinates.toPoint(), TurfConstants.UNIT_METERS)}")
+    println("Distance between S2 and and first interpolated point  = ${TurfMeasurement.distance(Coordinate("40.75721890909091","-73.93566436363636").toPoint(),busStops[2].coordinates.toPoint(), TurfConstants.UNIT_METERS)}")
+
+
+    //println("Distance between S4 and and last interpolated point  = ${TurfMeasurement.distance(Coordinate("40.7557795","-73.939753").toPoint(),busStops[0].coordinates.toPoint(), TurfConstants.UNIT_METERS)}")
+    println("Distance between S5 and and last interpolated point  = ${TurfMeasurement.distance(Coordinate("40.753451382353","-73.939064558824").toPoint(),busStops[5].coordinates.toPoint(), TurfConstants.UNIT_METERS)}")
+
+
+
+    println("Size == ${r.size}")
+    println("Result is = $result")
+}
+
+
+
+
+
+
+
+
+
+
+
+
+///// get point in route // SUCCESS
+/*fun main(){
+
+    val route1 = listOf(
+        Coordinate("40.755997", "-73.940509"),
+        Coordinate("40.75629", "-73.940229"),
+        Coordinate("40.756307", "-73.940212"),
+        Coordinate("40.756487", "-73.94004"),
+        Coordinate("40.756835", "-73.93972"),
+        Coordinate("40.756886", "-73.939673"),
+        Coordinate("40.75693", "-73.939633"),
+        Coordinate("40.756985", "-73.939582"),
+        Coordinate("40.757432", "-73.939163"),
+        Coordinate("40.757503", "-73.939097"),
+        Coordinate("40.757573", "-73.939028"),
+        Coordinate("40.758006", "-73.9386"),
+        Coordinate("40.758404", "-73.938217"),
+        Coordinate("40.758615", "-73.938014"),
+        Coordinate("40.758652", "-73.937978"),
+        Coordinate("40.758722", "-73.937911"),
+        Coordinate("40.758785", "-73.93785"),
+        Coordinate("40.759258", "-73.937391"),
+        Coordinate("40.759403", "-73.93725"),
+        Coordinate("40.759605", "-73.937056"),
+        Coordinate("40.759817", "-73.936854"),
+        Coordinate("40.759874", "-73.936801"),
+        Coordinate("40.759889", "-73.936787"),
+        Coordinate("40.759836", "-73.936675"),
+        Coordinate("40.759504", "-73.935966"),
+        Coordinate("40.759466", "-73.935882"),
+        Coordinate("40.759436", "-73.935814"),
+        Coordinate("40.759275", "-73.935484"),
+        Coordinate("40.759106", "-73.935157"),
+        Coordinate("40.759064", "-73.935066"),
+        Coordinate("40.759034", "-73.935002"),
+        Coordinate("40.758702", "-73.93426")
+    ).let {
+        Route(
+            "1",
+            "1",
+            1,
+            "S1",
+            "S2",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val route2 = listOf(
+        Coordinate("40.758702", "-73.93426"),
+        Coordinate("40.758639", "-73.934309"),
+        Coordinate("40.75797", "-73.934922")
+    ).let {
+        Route(
+            "1",
+            "2",
+            1,
+            "S2",
+            "S3",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val route3 = listOf(
+        Coordinate("40.75797", "-73.934922"),
+        Coordinate("40.757489", "-73.935363"),
+        Coordinate("40.757451", "-73.935389"),
+        Coordinate("40.757393", "-73.935465"),
+        Coordinate("40.757354", "-73.935542"),
+        Coordinate("40.756611", "-73.936215"),
+        Coordinate("40.756326", "-73.936473"),
+        Coordinate("40.756277", "-73.936518"),
+        Coordinate("40.756212", "-73.936581"),
+        Coordinate("40.756152", "-73.936636")
+    ).let {
+        Route(
+            "1",
+            "3",
+            1,
+            "S3",
+            "S4",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val route4 = listOf(
+        Coordinate("40.756152", "-73.936636"),
+        Coordinate("40.755221", "-73.937493"),
+        Coordinate("40.75516", "-73.937549"),
+        Coordinate("40.755127", "-73.937485")
+    ).let {
+        Route(
+            "1",
+            "4",
+            1,
+            "S4",
+            "S5",
+            coordinates = it,
+            Duration.ZERO,
+            "d2e2d2e"
+        )
+    }
+
+    val busStops = listOf(
+        BusStop(
+            stopId = "S1",
+            coordinates = route1.coordinates.first()
+        ),
+        BusStop(
+            stopId = "S2",
+            coordinates = route1.coordinates.last()
+        ),
+        BusStop(
+            stopId = "S3",
+            coordinates = route2.coordinates.last()
+        ),
+        BusStop(
+            stopId = "S4",
+            coordinates =  route3.coordinates.last()
+        ),
+        BusStop(
+            stopId = "S5",
+            coordinates =  route4.coordinates.last()
+        )
+    )
+
+
+//    val currentPoint = Coordinate(
+//        latitude = (40.7552).toString(),
+//        longitude = (-73.93743).toString()
+//    )
+//    val currentPoint = Coordinate(
+//        latitude = (40.75642).toString(),
+//        longitude = (-73.93994).toString()
+//    )
+
+//    val currentPoint = Coordinate(
+//        latitude = (40.75828).toString(),
+//        longitude = (-73.93453).toString()
+//    )
+
+    val currentPoint =  Coordinate("40.756152", "-73.936636")
+
+    val routeId = BusPathDiscovery().getPointInRouteFromScratch(
+        currentPoint,
+        listOf(route1, route2, route3, route4).reversed()
+    )
+
+    val routeId2 = BusPathDiscovery().getPointInRoute(
+        currentPoint,
+        "3",
+        "4",
+        listOf(route1, route2, route3, route4)
+    )
+
+    print("1 -- "+routeId+"\n")
+    print("2 -- "+routeId2)
+}*/
+
+
+
+
+
+
+/////  Testing Nearest point on line // Success
+/*
+fun main (){
+
+    val point1 =  Point.fromLngLat(-73.940587,40.756040)
+    val point2 =  Point.fromLngLat(-73.934217,40.758699)
+    val point3 =  Point.fromLngLat(-73.934841,40.757927)
+    val point4 = Point.fromLngLat(-73.936152,40.756578)
+    val point5 = Point.fromLngLat(-73.937480,40.755128)
+    val point6 = Point.fromLngLat(-73.938820,40.754864)
+    val point7 = Point.fromLngLat(-73.939563,40.755424)
+
+//    val polyline = LineString.fromLngLats(listOf(
+//    ))
+
+   // val point  = Point.fromLngLat(-73.94123,40.7553)
+
+    //val point = Point.fromLngLat(-73.94126,40.75527)
+
+    //val point = Point.fromLngLat(-73.94117,40.75535)
+
+    val point = Point.fromLngLat(-73.94030,40.75472)
+
+    val nearest = TurfMisc.nearestPointOnLine(point,listOf(point1,point2,point3,point4,point5, point6,point7),TurfConstants.UNIT_METERS)
+    println(nearest)
+
+    val nearestCoord = Coordinate(
+        (nearest.geometry() as Point).coordinates().last().toString(),
+        (nearest.geometry() as Point).coordinates().first().toString()
+    )
+    val distanceToNearestCoord = nearest.properties()!!.get("dist").toString()
+    println(nearestCoord)
+    println(distanceToNearestCoord)
+
+    val distance  = TurfMeasurement.distance(
+        point,Point.fromLngLat(-73.94119447265167,40.75528046331999),
+        TurfConstants.UNIT_METERS
+    )
+
+    println(distance)
+}
+*/
+
+
+
+
+
+
+
+
+
+
+////// Testing ETA // Success
+/*
+
+fun geoJsonToCoordinates() = listOf(
+    Coordinate(latitude = "40.755997", longitude = "-73.940509"),
+    Coordinate(latitude = "40.75629",  longitude = "-73.940229"),
+    Coordinate(latitude = "40.756307", longitude = "-73.940212"),
+    Coordinate(latitude = "40.756487", longitude = "-73.94004"),
+    Coordinate(latitude = "40.756835", longitude = "-73.93972"),
+    Coordinate(latitude = "40.756886", longitude = "-73.939673"),
+    Coordinate(latitude = "40.75693",  longitude = "-73.939633"),
+    Coordinate(latitude = "40.756985", longitude = "-73.939582"),
+    Coordinate(latitude = "40.757432", longitude = "-73.939163"),
+    Coordinate(latitude = "40.757503", longitude = "-73.939097"),
+    Coordinate(latitude = "40.757573", longitude = "-73.939028"),
+    Coordinate(latitude = "40.758006", longitude = "-73.9386"),
+    Coordinate(latitude = "40.758404", longitude = "-73.938217"),
+    Coordinate(latitude = "40.758615", longitude = "-73.938014"),
+    Coordinate(latitude = "40.758652", longitude = "-73.937978"),
+    Coordinate(latitude = "40.758722", longitude = "-73.937911"),
+    Coordinate(latitude = "40.758785", longitude = "-73.93785"),
+    Coordinate(latitude = "40.759258", longitude = "-73.937391"),
+    Coordinate(latitude = "40.759403", longitude = "-73.93725"),
+    Coordinate(latitude = "40.759605", longitude = "-73.937056"),
+    Coordinate(latitude = "40.759817", longitude = "-73.936854"),
+    Coordinate(latitude = "40.759874", longitude = "-73.936801"),
+    Coordinate(latitude = "40.759889", longitude = "-73.936787"),
+    Coordinate(latitude = "40.759836", longitude = "-73.936675"),
+    Coordinate(latitude = "40.759504", longitude = "-73.935966"),
+    Coordinate(latitude = "40.759466", longitude = "-73.935882"),
+    Coordinate(latitude = "40.759436", longitude = "-73.935814"),
+    Coordinate(latitude = "40.759275", longitude = "-73.935484"),
+    Coordinate(latitude = "40.759106", longitude = "-73.935157"),
+    Coordinate(latitude = "40.759064", longitude = "-73.935066"),
+    Coordinate(latitude = "40.759034", longitude = "-73.935002"),
+    Coordinate(latitude = "40.758702", longitude = "-73.93426")
+)
+
+
+@OptIn(ExperimentalTime::class)
+fun main(){
+    val calculator = EtaCalculator()
+
+    val currentStop = CurrentStopDetails(
+        "40.755997",
+        "-73.940509",
+        null
+    )
+//
+//    val currentStop = CurrentStopDetails(
+//        "40.759106",
+//        "-73.935157",
+//        null
+//    )
+
+    val route  = CurrentRouteDetails(
+        "BUS_001",
+        "ROUTE_001",
+        geoJsonToCoordinates(),
+        (142L).seconds,
+        "785.776",
+        RouteType.OutAndBack,
+        true
+    )
+
+    val oldest  = OldestCoordinates(
+        latitude = "40.759064",
+        longitude = "-73.935066",
+        Clock.System.now().toString()
+    )
+
+    val latest = LatestCoordinates(
+        latitude = "40.759064",
+        longitude = "-73.935066",
+        Clock.System.now().toString()
+    )
+
+    val result  = calculator.calculateEta(
+        (100L).seconds,
+        oldest,
+        latest,
+        route,
+        currentStop,
+    )
+
+    when(result) {
+        is EtaResult.Ahead -> println("ETA is ${result.eta.inWholeSeconds} seconds.\nRemaining Distance = ${result.remainingDistance.toDouble().toInt()} meters.\nAhead by ${result.delta.inWholeSeconds} seconds. ")
+        is EtaResult.Delayed -> println("ETA is ${result.eta.inWholeSeconds} seconds.\nRemaining Distance = ${result.remainingDistance.toDouble().toInt()} meters.\nDelayed by ${result.delta.inWholeSeconds} seconds. " +
+                " ")
+        null -> println("ETA is null")
+    }
+}
+*/

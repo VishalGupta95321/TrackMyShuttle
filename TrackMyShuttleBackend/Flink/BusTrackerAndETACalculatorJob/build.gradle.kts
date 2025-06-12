@@ -8,7 +8,7 @@ val flinkVersion: String by project
 
 
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.20"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     kotlin("plugin.serialization") version "2.0.21"
 
@@ -44,6 +44,9 @@ dependencies {
 
     /// MapBox Turf Module
     implementation("com.mapbox.mapboxsdk:mapbox-sdk-turf:7.4.0")
+
+    /// Remove it if not needed.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
 }
 
