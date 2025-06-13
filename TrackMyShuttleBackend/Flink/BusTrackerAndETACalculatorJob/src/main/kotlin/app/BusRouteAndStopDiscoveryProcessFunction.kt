@@ -84,7 +84,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
                             busId = context.currentKey,
                             currentRoute = currentRoute,
                             routeType = busRouteType.value(),
-                            location = point,
+                            location = element.value.timestamp to point,
                             isReturning = isReturning.value(),
                             currentStop = currentStop.value(),
                             nextStop = nextBusStop.value(),
