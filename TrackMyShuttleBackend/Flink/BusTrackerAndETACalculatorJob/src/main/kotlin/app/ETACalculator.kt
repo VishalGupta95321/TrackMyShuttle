@@ -4,6 +4,7 @@ import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfMeasurement
 import models.Coordinate
+import models.TimeStampedCoordinate
 import util.RouteType
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -27,23 +28,11 @@ data class FromStopDetails(
 data class CurrentRouteDetails(
     val busId: String,
     val routeId: String,
-    val coordinates: List<Coordinate>, // Interpolated points every 10 meters.
+    val coordinates: List<Coordinate>,
     val duration: Duration,
     val distanceInMeters: String,
     val routeType: RouteType,
     val isReturning: Boolean,
-)
-
-data class LatestCoordinates(
-    val latitude: String,
-    val longitude: String,
-    val timestamp: String,
-)
-
-data class OldestCoordinates(
-    val latitude: String,
-    val longitude: String,
-    val timestamp: String,
 )
 
 sealed interface EtaResult {
@@ -59,8 +48,8 @@ class EtaCalculator {
     @OptIn(ExperimentalTime::class)
     fun calculateEta(
         waitTime: Duration,
-        oldestCoordinates: OldestCoordinates,
-        latestCoordinate: LatestCoordinates,
+        oldestCoordinates: TimeStampedCoordinate,
+        latestCoordinate: TimeStampedCoordinate,
         currentRoute: CurrentRouteDetails,
         fromStopDetails: FromStopDetails, // from the stop where bus started its journey
     ): EtaResult? {
@@ -74,7 +63,7 @@ class EtaCalculator {
         /// Will take the oldest stop from the window if did not the time when its reached it last stop.
         val startTimeMillis = getStartTimeMillis(oldestCoordinates, fromStopDetails)
 
-        val nowMillis = Instant.parse(latestCoordinate.timestamp).toEpochMilliseconds()
+        val nowMillis = latestCoordinate.timestamp.milliseconds.inWholeMilliseconds
 
 
         if (fromStopDetails.arrivalTime != null) {
@@ -107,7 +96,7 @@ class EtaCalculator {
         )
     }
 
-    private fun getStartPoint(oldestPoint: OldestCoordinates, fromStopDetails: FromStopDetails): Point {
+    private fun getStartPoint(oldestPoint: TimeStampedCoordinate, fromStopDetails: FromStopDetails): Point {
         return if (fromStopDetails.arrivalTime != null) {
             Point.fromLngLat(
                 fromStopDetails.longitude.toDouble(),
@@ -115,16 +104,16 @@ class EtaCalculator {
             )
         } else {
             Point.fromLngLat(
-                oldestPoint.longitude.toDouble(),
-                oldestPoint.latitude.toDouble()
+                oldestPoint.coordinate.longitude.toDouble(),
+                oldestPoint.coordinate.latitude.toDouble()
             )
         }
     }
 
     @OptIn(ExperimentalTime::class)
-    private fun getStartTimeMillis(oldestPoint: OldestCoordinates, fromStopDetails: FromStopDetails): Long {
+    private fun getStartTimeMillis(oldestPoint: TimeStampedCoordinate, fromStopDetails: FromStopDetails): Long {
         return fromStopDetails.arrivalTime?.inWholeMilliseconds
-            ?: Instant.parse(oldestPoint.timestamp).toEpochMilliseconds()
+            ?: oldestPoint.timestamp.milliseconds.inWholeMilliseconds
     }
 
     private fun hasWaitedEnough(waitTime: Duration, startTimeMillis: Long, nowMillis: Long): Boolean {
@@ -140,8 +129,8 @@ class EtaCalculator {
         return coordinates.map { Point.fromLngLat(it.longitude.toDouble(), it.latitude.toDouble()) }
     }
 
-    private fun getCurrentPosition(latestCoordinate: LatestCoordinates): Point {
-        return  Point.fromLngLat(latestCoordinate.longitude.toDouble(), latestCoordinate.latitude.toDouble())
+    private fun getCurrentPosition(latestCoordinate: TimeStampedCoordinate): Point {
+        return  Point.fromLngLat(latestCoordinate.coordinate.longitude.toDouble(), latestCoordinate.coordinate.latitude.toDouble())
     }
 
     private fun getNearestPointIndex(currentPos: Point, routePoints: List<Point>): Int? {
