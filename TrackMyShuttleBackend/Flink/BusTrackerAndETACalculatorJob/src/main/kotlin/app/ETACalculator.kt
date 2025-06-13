@@ -15,6 +15,7 @@ import kotlin.time.Instant
 ////  only call ETA fun when you know Which route bus is on , its next stop direction  and its last stop arrival time (if possible to get most accurate out of this fun.).
 /// There are 2 functions NearestOnLine and Nearest
 
+private const val BUS_STOP_RADIUS_IN_METERS = 100L
 
 
 data class FromStopDetails(
@@ -88,7 +89,7 @@ class EtaCalculator {
         val remainingPoints = routePoints.subList(nearestPointInLineIndex, routePoints.size)
        //  if (remainingPoints.size < 2) return null
 
-        val remainingDistance = getLineLength(remainingPoints)
+        val remainingDistance = getLineLength(remainingPoints) - BUS_STOP_RADIUS_IN_METERS ///// version 2
         val expectedSpeed = getExpectedSpeed(currentRoute)
         //if (expectedSpeed <= 0) return null
 
@@ -225,6 +226,7 @@ class EtaCalculator {
  * 5. Calculate Remaining Distance
  *    - Get the route segment from the current index to the end.
  *    - Sum the distance of remaining route points.
+ *    - Minus the Bus Stop radius.
  *
  * 6. Calculate Expected Speed
  *    - expectedSpeed = totalRouteDistance / totalRouteDuration (in m/s)
