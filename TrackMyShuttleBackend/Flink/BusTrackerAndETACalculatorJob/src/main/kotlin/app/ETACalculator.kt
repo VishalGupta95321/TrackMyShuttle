@@ -17,7 +17,7 @@ import kotlin.time.Instant
 
 
 
-data class CurrentStopDetails(
+data class FromStopDetails(
     val latitude: String,
     val longitude: String,
     val arrivalTime: Duration? // kotlin.time.Duration
@@ -61,7 +61,7 @@ class EtaCalculator {
         oldestCoordinates: OldestCoordinates,
         latestCoordinate: LatestCoordinates,
         currentRoute: CurrentRouteDetails,
-        currentStopDetails: CurrentStopDetails, // from the stop where bus started its journey
+        fromStopDetails: FromStopDetails, // from the stop where bus started its journey
     ): EtaResult? {
 
         val isReturning = when(currentRoute.routeType){
@@ -69,13 +69,14 @@ class EtaCalculator {
             is RouteType.OutAndBack -> currentRoute.isReturning
         }
 
-        val startPoint = getStartPoint(oldestCoordinates, currentStopDetails)
-        val startTimeMillis = getStartTimeMillis(oldestCoordinates, currentStopDetails)
+        val startPoint = getStartPoint(oldestCoordinates, fromStopDetails)
+        /// Will take the oldest stop from the window if did not the time when its reached it last stop.
+        val startTimeMillis = getStartTimeMillis(oldestCoordinates, fromStopDetails)
 
         val nowMillis = Instant.parse(latestCoordinate.timestamp).toEpochMilliseconds()
 
 
-        if (currentStopDetails.arrivalTime != null) {
+        if (fromStopDetails.arrivalTime != null) {
             if (!hasWaitedEnough(waitTime, startTimeMillis, nowMillis)) return null  ///////
         }
 
@@ -105,11 +106,11 @@ class EtaCalculator {
         )
     }
 
-    private fun getStartPoint(oldestPoint: OldestCoordinates, currentStopDetails: CurrentStopDetails): Point {
-        return if (currentStopDetails.arrivalTime != null) {
+    private fun getStartPoint(oldestPoint: OldestCoordinates, fromStopDetails: FromStopDetails): Point {
+        return if (fromStopDetails.arrivalTime != null) {
             Point.fromLngLat(
-                currentStopDetails.longitude.toDouble(),
-                currentStopDetails.latitude.toDouble()
+                fromStopDetails.longitude.toDouble(),
+                fromStopDetails.latitude.toDouble()
             )
         } else {
             Point.fromLngLat(
@@ -120,8 +121,8 @@ class EtaCalculator {
     }
 
     @OptIn(ExperimentalTime::class)
-    private fun getStartTimeMillis(oldestPoint: OldestCoordinates, currentStopDetails: CurrentStopDetails): Long {
-        return currentStopDetails.arrivalTime?.inWholeMilliseconds
+    private fun getStartTimeMillis(oldestPoint: OldestCoordinates, fromStopDetails: FromStopDetails): Long {
+        return fromStopDetails.arrivalTime?.inWholeMilliseconds
             ?: Instant.parse(oldestPoint.timestamp).toEpochMilliseconds()
     }
 
@@ -197,16 +198,16 @@ class EtaCalculator {
  *
  * Inputs:
  * - waitTime: Minimum wait time before calculating ETA (e.g., 30 seconds)
- * - oldestPoint: Previous known location and timestamp of the vehicle
+ * - oldestPoint: Previous known location and timestamp of the vehicle for window.
  * - latestCoordinate: Current vehicle location and timestamp
  * - currentRoute: Route details (coordinates, total distance, total duration)
- * - currentStopDetails: Details of the current stop (arrival time and location)
+ * - fromStopDetails: from the stop where bus started its journey
  * - isReturning: If true, the vehicle is on a return trip (route is reversed)
  *
  * Steps:
  *
  * 1. Determine Start Point & Time
- *    - If currentStopDetails.arrivalTime exists, use it and the stop's location.
+ *    - If fromStopDetails.arrivalTime exists, use it and the stop's location.
  *    - Otherwise, use oldestPoint's timestamp and location.
  *
  * 2. Check Waiting Time
