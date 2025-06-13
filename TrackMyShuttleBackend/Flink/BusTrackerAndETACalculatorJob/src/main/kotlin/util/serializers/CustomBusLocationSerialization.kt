@@ -1,4 +1,4 @@
-package util
+package util.serializers
 
 import kotlinx.serialization.json.Json
 import org.apache.flink.api.common.serialization.DeserializationSchema

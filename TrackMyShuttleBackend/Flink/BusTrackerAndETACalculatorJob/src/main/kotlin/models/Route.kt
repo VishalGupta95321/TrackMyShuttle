@@ -1,7 +1,9 @@
 package models
 
+import kotlinx.serialization.Serializable
 import kotlin.time.Duration
 
+@Serializable
 data class Route(
     val busId: String,
     val routeId: String,    /// StopIdA + StopIdB // Ok Ok Not because there gonna be multiple routes between two stops

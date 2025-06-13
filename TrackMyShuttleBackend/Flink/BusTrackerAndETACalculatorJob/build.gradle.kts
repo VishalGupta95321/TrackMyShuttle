@@ -45,8 +45,8 @@ dependencies {
     /// MapBox Turf Module
     implementation("com.mapbox.mapboxsdk:mapbox-sdk-turf:7.4.0")
 
-    /// Remove it if not needed.
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+//    /// Remove it if not needed.
+//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
 }
 
@@ -58,7 +58,7 @@ tasks.test {
 tasks.jar {
     manifest {
         attributes(
-            "Main-Class" to ""
+            "Main-Class" to "BusTrackerAndETACalculatorApp"
         )
     }
 }

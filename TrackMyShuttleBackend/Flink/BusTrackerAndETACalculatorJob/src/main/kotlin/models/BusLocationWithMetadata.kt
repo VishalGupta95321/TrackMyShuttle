@@ -1,8 +1,11 @@
 package models
 
+import kotlinx.serialization.Serializable
 import util.RouteType
+import util.TimeStamp
 
-typealias Timestamp = Long
+
+@Serializable
 data class BusLocationWithMetadata(
     val busId: String,
     val currentRoute: Route,
@@ -10,6 +13,17 @@ data class BusLocationWithMetadata(
     val location: TimeStampedCoordinate,
     val isReturning: Boolean,
     val currentStop: BusStop?, // if reached its destination
-    val lastPassedStop: Pair<Timestamp?,BusStop>, // Timestamp = When it passed the stop.
+    val lastPassedStop: Pair<TimeStamp?,BusStop>, // Timestamp = When it passed the stop.
     val nextStop: BusStop,
+)
+
+fun BusLocationWithMetadata.toBusTrackingData() = BusTrackingData(
+    busId = busId,
+    currentRouteId = currentRoute.routeId,
+    routeType = routeType,
+    location = location,
+    isReturning = isReturning,
+    lastPassedStopId = lastPassedStop.second.stopId,
+    nextStopId = nextStop.stopId,
+    currentStopId = currentStop?.stopId
 )

@@ -10,18 +10,16 @@ import models.Coordinate
 import models.Route
 import models.TimeStampedCoordinate
 import models.toPoint
+import util.Index
 import util.RouteType
+import util.TimeStamp
+import util.isReturning
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-private const val MAX_TIME_INTERVAL_BETWEEN_COORDINATES_IN_LIST_IN_SEC = 20L
-private const val MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS = 100L
-private const val BUS_STOP_RADIUS_IN_METERS = 100L
-private const val MAX_GPS_ERROR_IN_METERS = 20L
-private const val INDEX_ZERO = 0
-private typealias Index = Int
-private typealias TimeStamp = Long
-private typealias isReturning = Boolean
+
+
+
 
 data class NearestPoint(
     val coordinate: Coordinate,
@@ -323,5 +321,13 @@ class BusRouteAndStopDiscovery {
         val distanceInMeters = TurfMeasurement.length(lineString, "meters")
 
         return distanceInMeters >= MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS
+    }
+
+    companion object{
+        private const val MAX_TIME_INTERVAL_BETWEEN_COORDINATES_IN_LIST_IN_SEC = 20L
+        private const val MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS = 100L
+        const val BUS_STOP_RADIUS_IN_METERS = 100L
+        private const val MAX_GPS_ERROR_IN_METERS = 20L
+        private const val INDEX_ZERO = 0
     }
 }

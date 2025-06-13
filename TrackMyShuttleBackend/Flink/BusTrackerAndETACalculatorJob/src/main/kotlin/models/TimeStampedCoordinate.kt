@@ -1,5 +1,8 @@
 package models
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class TimeStampedCoordinate(
     val coordinate: Coordinate,
     val timestamp: Long,

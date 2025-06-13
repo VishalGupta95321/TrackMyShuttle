@@ -1,27 +1,27 @@
 package app
 
+import app.BusRouteAndStopDiscovery.Companion.BUS_STOP_RADIUS_IN_METERS
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfMeasurement
+import kotlinx.serialization.Serializable
 import models.Coordinate
+import models.EtaResult
 import models.TimeStampedCoordinate
 import util.RouteType
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 
 ////  only call ETA fun when you know Which route bus is on , its next stop direction  and its last stop arrival time (if possible to get most accurate out of this fun.).
 /// There are 2 functions NearestOnLine and Nearest
 
-private const val BUS_STOP_RADIUS_IN_METERS = 100L
-
-
 data class FromStopDetails(
     val latitude: String,
     val longitude: String,
+    val waitTime: Duration,
     val arrivalTime: Duration? // kotlin.time.Duration
 )
 
@@ -35,10 +35,6 @@ data class CurrentRouteDetails(
     val isReturning: Boolean,
 )
 
-sealed interface EtaResult {
-    data class Ahead(val eta: Duration, val delta: Duration, val remainingDistance: String) : EtaResult
-    data class Delayed(val eta: Duration, val delta: Duration, val remainingDistance: String) : EtaResult
-}
 
 
 // Calculates ETA of the bus and also returns the remaining distance.
@@ -47,11 +43,10 @@ class EtaCalculator {
     // Failing to provide CurrentStopDetails Arrival time would affect the accuracy of this function.
     @OptIn(ExperimentalTime::class)
     fun calculateEta(
-        waitTime: Duration,
         oldestCoordinates: TimeStampedCoordinate,
         latestCoordinate: TimeStampedCoordinate,
         currentRoute: CurrentRouteDetails,
-        fromStopDetails: FromStopDetails, // from the stop where bus started its journey
+        fromStop: FromStopDetails, // from the stop where bus started its journey
     ): EtaResult? {
 
         val isReturning = when(currentRoute.routeType){
@@ -59,15 +54,15 @@ class EtaCalculator {
             is RouteType.OutAndBack -> currentRoute.isReturning
         }
 
-        val startPoint = getStartPoint(oldestCoordinates, fromStopDetails)
-        /// Will take the oldest stop from the window if did not the time when its reached it last stop.
-        val startTimeMillis = getStartTimeMillis(oldestCoordinates, fromStopDetails)
+        val startPoint = getStartPoint(oldestCoordinates, fromStop)
+
+        val startTimeMillis = getStartTimeMillis(oldestCoordinates, fromStop)
 
         val nowMillis = latestCoordinate.timestamp.milliseconds.inWholeMilliseconds
 
 
-        if (fromStopDetails.arrivalTime != null) {
-            if (!hasWaitedEnough(waitTime, startTimeMillis, nowMillis)) return null  ///////
+        if (fromStop.arrivalTime != null) {
+            if (!hasWaitedEnough(fromStop.waitTime, startTimeMillis, nowMillis)) return null  ///////
         }
 
         val orderedRoutePoints = orderRoutePoints(currentRoute.coordinates, isReturning)
@@ -175,9 +170,9 @@ class EtaCalculator {
         val delta = kotlin.math.abs(timeCorrectionSeconds).seconds
 
         return if (deltaDistance >= 0) {
-            EtaResult.Ahead(adjustedEta, delta, remainingDistance.toString())
+            EtaResult.Ahead(adjustedEta.inWholeSeconds, delta.inWholeSeconds, remainingDistance.toString())
         } else {
-            EtaResult.Delayed(adjustedEta, delta, remainingDistance.toString())
+            EtaResult.Delayed(adjustedEta.inWholeSeconds, delta.inWholeSeconds, remainingDistance.toString())
         }
     }
 }

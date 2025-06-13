@@ -4,8 +4,11 @@ import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
 import com.mapbox.turf.TurfMisc
+import kotlinx.serialization.json.Json
+import models.BusETAData
 import models.BusStop
 import models.Coordinate
+import models.EtaResult
 import models.Route
 import models.TimeStampedCoordinate
 import models.toPoint
@@ -435,6 +438,22 @@ fun mainn(){
 }
 
 
+fun main(){
+
+    val j = Json
+    val e  = BusETAData(
+        busId = "1",
+        eta = EtaResult.Ahead(
+            222L,
+            2222L,
+            "ceceec"
+        )
+    )
+
+    val c = j.encodeToString(e)
+    println(c)
+    println(j.decodeFromString<BusETAData>(c))
+}
 
 
 ///// get point in route // SUCCESS

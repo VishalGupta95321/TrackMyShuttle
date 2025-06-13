@@ -15,10 +15,9 @@ import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.util.Collector
 import util.EitherOfThree
 import util.RouteType
+import util.TimeStamp
 import util.getListState
 import util.getValueState
-
-private typealias Timestamp = Long
 
 /// It finds out in which DIRECTION bus is heading FROM which STOP - TO which STOP, on which ROUTE and if it reached its DESTINATION.
 class BusRouteAndStopDiscoveryProcessFunction :
@@ -34,7 +33,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
 
     /// Need to find out these values for output stream.
     private lateinit var recentCoordinates: ListState<TimeStampedCoordinate>
-    private lateinit var lastPassedBusStop: ValueState<Pair<Timestamp?,BusStop>>
+    private lateinit var lastPassedBusStop: ValueState<Pair<TimeStamp?,BusStop>>
     private lateinit var nextBusStop: ValueState<BusStop>
     private lateinit var currentStop: ValueState<BusStop>
     private lateinit var isReturning: ValueState<Boolean>
@@ -49,10 +48,9 @@ class BusRouteAndStopDiscoveryProcessFunction :
             busRoutes = getListState<Route>(BUS_ROUTES)
             busRouteType = getValueState<RouteType>(BUS_ROUTE_TYPE)
             recentCoordinates = getListState<TimeStampedCoordinate>(RECENT_COORDINATES)
-            lastPassedBusStop = getValueState<Pair<Timestamp?,BusStop>>(LAST_PASSED_BUS_STOP)
+            lastPassedBusStop = getValueState<Pair<TimeStamp?,BusStop>>(LAST_PASSED_BUS_STOP)
             nextBusStop = getValueState<BusStop>(NEXT_BUS_STOP)
             currentStop = getValueState<BusStop>(CURRENT_STOP)
-            //currentRouteId = getValueState<String>(CURRENT_ROUTE_ID)
             isReturning = getValueState<Boolean>(IS_RETURNING)
         }
     }

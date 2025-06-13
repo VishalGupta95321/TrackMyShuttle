@@ -1,33 +1,46 @@
 package app
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import models.BusLocationData
 import models.BusData
 import models.KafkaSinkConfiguration
 import models.KafkaSourceConfiguration
 import models.Route
+import models.toBusTrackingData
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
+import org.apache.flink.connector.base.DeliveryGuarantee
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema
 import org.apache.flink.connector.kafka.sink.KafkaSink
 import org.apache.flink.connector.kafka.source.KafkaSource
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.getExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
-import util.CustomBusLocationSerializer
-import util.CustomBusRoutesSerialization
-import util.CustomBusDataSerializer
+import util.BusUnion
+import util.serializers.CustomBusLocationSerializer
+import util.serializers.CustomBusDataSerializer
+import util.serializers.CustomBusRoutesDeserializer
 import util.EitherOfThree
+import util.serializers.CustomBusETADataSerializer
+import util.serializers.CustomBusTrackingDataSerializer
 import java.time.Duration
 
+
+//// Kafka Source Topics
 private const val BUS_LOCATION_DATA_TOPIC = "BUS_LOCATION_DATA"
 private const val BUS_DATA_TOPIC = "BUS_DATA"
 private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
 
+
+/// Kafka Sink Topics
+private const val BUS_ETA_DATA_TOPIC = "BUS_ETA_DATA"
+private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
+
+
 private const val KAFKA_BROKER = "localhost:9092"
 private const val BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS = 5L
-private const val BUS_LOCATION_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
+private const val BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
 
-typealias BusUnion = EitherOfThree<BusLocationData, BusData, Route>
 
 @Suppress("UNCHECKED_CAST")
 class BusTrackerAndETACalculatorApp {
@@ -54,9 +67,9 @@ class BusTrackerAndETACalculatorApp {
                     .setTopic(configure().topic)
                     .setValueSerializationSchema(configure().serializer)
                     .build()
-            ).build()
-
-
+            )
+            .setDeliveryGuarantee(DeliveryGuarantee.NONE)
+            .build()
 
 
 
@@ -97,15 +110,13 @@ class BusTrackerAndETACalculatorApp {
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
                         topic = BUS_ROUTES_DATA_TOPIC,
-                        deserializer = CustomBusRoutesSerialization(json)
+                        deserializer = CustomBusRoutesDeserializer(json)
                     )
                 },
                 WatermarkStrategy.noWatermarks(),
                 "BusRoutesDataInputStream"
             )
 
-
-            /// All three are keyed
 
             val locationDataStream = busLocationDataInputStream.map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
             val busDataStream  = busDataInputStream.map { EitherOfThree.Middle<BusData>(it) as BusUnion }
@@ -119,36 +130,39 @@ class BusTrackerAndETACalculatorApp {
                 }
             }.process(BusRouteAndStopDiscoveryProcessFunction())
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-///// TODO
             val windowedBusLocationDataStream = busLocationWithMetadataStream
                 .keyBy { it.busId }
-                .window(TumblingEventTimeWindows.of(Duration.ofSeconds(BUS_LOCATION_TUMBLING_WINDOW_SIZE_IN_SECONDS)))
-                .process(BusLocationDataProcessingWindowFunction())
+                .window(TumblingEventTimeWindows.of(Duration.ofSeconds(BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS)))
+                .process(BusLocationDataProcessWindowFunction())
+
+
+
+            val busETADataStream = windowedBusLocationDataStream
                 .keyBy { it.busId }
+                .process(BusETACalculatingProcessFunction())
+
+            val busTrackingDataStream = busLocationWithMetadataStream
+                .map { it.toBusTrackingData() }
 
 
+            val busETADataStreamSink = getKafkaSink {
+                KafkaSinkConfiguration(
+                    bootstrapServers = KAFKA_BROKER,
+                    topic = BUS_ETA_DATA_TOPIC,
+                    serializer = CustomBusETADataSerializer(json)
+                )
+            }
 
-            val processedBusTrackingData = busDataInputStream
-                .connect(windowedBusLocationDataStream)
-                .keyBy({it.busId}, { it.busId})
-               // .process()
+            val busTrackingDataStreamSink = getKafkaSink {
+                KafkaSinkConfiguration(
+                    bootstrapServers = KAFKA_BROKER,
+                    topic = BUS_TRACKING_DATA_TOPIC,
+                    serializer = CustomBusTrackingDataSerializer(json)
+                )
+            }
 
+            busETADataStream.sinkTo(busETADataStreamSink)
+            busTrackingDataStream.sinkTo(busTrackingDataStreamSink)
         }
     }
 }

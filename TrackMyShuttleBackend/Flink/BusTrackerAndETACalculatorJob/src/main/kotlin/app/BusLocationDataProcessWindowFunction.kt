@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 
 
-class BusLocationDataProcessingWindowFunction: ProcessWindowFunction<BusLocationWithMetadata, BusLocationWithMetadataWindowed, String, TimeWindow>(){
+class BusLocationDataProcessWindowFunction: ProcessWindowFunction<BusLocationWithMetadata, BusLocationWithMetadataWindowed, String, TimeWindow>(){
     override fun process(
         key: String,
         context: ProcessWindowFunction<BusLocationWithMetadata, BusLocationWithMetadataWindowed, String, TimeWindow>.Context,
