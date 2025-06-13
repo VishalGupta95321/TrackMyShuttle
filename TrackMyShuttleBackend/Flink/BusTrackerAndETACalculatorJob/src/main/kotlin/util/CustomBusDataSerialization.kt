@@ -7,7 +7,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.common.typeinfo.Types
 import models.BusData
 
-class CustomBusStopsSerializer(
+class CustomBusDataSerializer(
     private val json: Json
 ) : DeserializationSchema<BusData> {
     override fun deserialize(inputMessgae: ByteArray?): BusData? {
@@ -21,7 +21,7 @@ class CustomBusStopsSerializer(
     override fun getProducedType(): TypeInformation<BusData?> = Types.POJO(BusData::class.java)
 }
 
-class CustomBusStopsDeserializer(
+class CustomBusDataDeserializer(
     private val json: Json
 ): SerializationSchema<BusData>{
     override fun serialize(message: BusData?): ByteArray? {

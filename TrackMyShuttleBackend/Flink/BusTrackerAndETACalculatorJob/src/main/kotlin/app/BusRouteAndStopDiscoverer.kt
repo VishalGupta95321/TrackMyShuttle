@@ -8,6 +8,7 @@ import com.mapbox.turf.TurfMisc
 import models.BusStop
 import models.Coordinate
 import models.Route
+import models.TimeStampedCoordinate
 import models.toPoint
 import util.RouteType
 import kotlin.time.DurationUnit
@@ -112,12 +113,12 @@ class BusRouteAndStopDiscovery {
         }
 
         /// In case any point in the recent coordinates list reached or crossed on of the stop.
-        recentCoordinates.forEach { coord ->
+        recentCoordinates.forEach { coordinates ->
             val isCurrentPointIsWithinStop1Radius =
-                checkIfCurrentPointIsWithinBusStopRadius(coord, currentStop1.second.coordinates)
+                checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop1.second.coordinates)
 
             val isCurrentPointIsWithinStop2Radius =
-                checkIfCurrentPointIsWithinBusStopRadius(coord, currentStop2.second.coordinates)
+                checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop2.second.coordinates)
 
             if (isCurrentPointIsWithinStop1Radius) {
                 println(" Bus Crossed the Stop")
@@ -295,12 +296,12 @@ class BusRouteAndStopDiscovery {
     ///// Clearing the recent is the time interval between the next coordinate exceeds the interval time.
     ///// Got Called everytime we add new point in the recentCoord list.
     fun clearRecentCoordinatesIfIntervalPassed(
-        recentCoordinates: List<Pair<TimeStamp, Coordinate>>,
+        recentCoordinates: List<TimeStampedCoordinate>,
         currentCoordinateTimestamp: TimeStamp,
     ): Boolean {
         if (recentCoordinates.isNotEmpty()) {
             val lastCoordinate = recentCoordinates.last()
-            val timeDiffInSecs = (currentCoordinateTimestamp - lastCoordinate.first).toDuration(DurationUnit.SECONDS)
+            val timeDiffInSecs = (currentCoordinateTimestamp - lastCoordinate.timestamp).toDuration(DurationUnit.SECONDS)
             if (timeDiffInSecs.inWholeSeconds >= MAX_TIME_INTERVAL_BETWEEN_COORDINATES_IN_LIST_IN_SEC) {
                return true
             }

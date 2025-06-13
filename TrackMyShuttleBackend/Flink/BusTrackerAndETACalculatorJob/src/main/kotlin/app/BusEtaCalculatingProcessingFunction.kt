@@ -3,7 +3,7 @@ package app
 import models.BusData
 import models.BusTrackingData
 import models.Coordinate
-import models.WindowedCoordinates
+import models.BusLocationWithMetadataWindowed
 import org.apache.flink.api.common.functions.OpenContext
 import org.apache.flink.api.common.state.ListState
 import org.apache.flink.api.common.state.ValueState
@@ -14,7 +14,7 @@ import util.getListState
 
 
 
-class BusTrackingDataProcessingFunction: KeyedCoProcessFunction<String, BusData, WindowedCoordinates, BusTrackingData>() {
+class BusEtaCalculatingProcessingFunction: KeyedCoProcessFunction<String, BusData, BusLocationWithMetadataWindowed, BusTrackingData>() {
 
     private lateinit var lastSixWindowsAvgSpeed: ListState<String>
     private lateinit var lastSixWindowsCoordinates: ListState<Coordinate>
@@ -36,15 +36,15 @@ class BusTrackingDataProcessingFunction: KeyedCoProcessFunction<String, BusData,
 
     override fun processElement1(
         element: BusData?,
-        context: KeyedCoProcessFunction<String?, BusData?, WindowedCoordinates?, BusTrackingData?>.Context?,
+        context: KeyedCoProcessFunction<String?, BusData?, BusLocationWithMetadataWindowed?, BusTrackingData?>.Context?,
         out: Collector<BusTrackingData?>?
     ) {
         TODO("Not yet implemented")
     }
 
     override fun processElement2(
-        element: WindowedCoordinates?,
-        context: KeyedCoProcessFunction<String?, BusData?, WindowedCoordinates?, BusTrackingData?>.Context?,
+        element: BusLocationWithMetadataWindowed?,
+        context: KeyedCoProcessFunction<String?, BusData?, BusLocationWithMetadataWindowed?, BusTrackingData?>.Context?,
         out: Collector<BusTrackingData?>?
     ) {
         TODO("Not yet implemented")

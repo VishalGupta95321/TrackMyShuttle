@@ -1,8 +1,11 @@
 package models
 
 
-data class WindowedCoordinates(
+
+
+data class BusLocationWithMetadataWindowed(
     val busId: String,
-    val oldestCoordinates: Coordinate,
-    val latestCoordinates: Coordinate
+    val busLocationMetadata: BusLocationWithMetadata,
+    val oldestCoordinates: TimeStampedCoordinate,
+    val latestCoordinates: TimeStampedCoordinate
 )

@@ -7,6 +7,7 @@ import com.mapbox.turf.TurfMisc
 import models.BusStop
 import models.Coordinate
 import models.Route
+import models.TimeStampedCoordinate
 import models.toPoint
 import util.RouteType
 import kotlin.math.log
@@ -158,6 +159,9 @@ import kotlin.math.*
 
 import kotlin.math.*
 
+
+//// Testing findNextLastStopAndIfIsReturningFromScratch() ///// SUCCESS
+
 fun generateRecentCoordinatesFromSegment(
     segment: List<Coordinate>,
     busStops: List<BusStop>,
@@ -236,9 +240,8 @@ fun formatCoordinatesForExport(coords: List<Coordinate>, color: String = "#0000F
 
 
 
-//// Testing findNextLastStopAndIfIsReturningFromScratch() ///// SUCCESS
 @OptIn(ExperimentalTime::class)
-fun main(){
+fun mainn(){
     val routeS0S1 = listOf(
         Coordinate("40.755997", "-73.940509"),
         Coordinate("40.75629", "-73.940229"),
@@ -430,14 +433,6 @@ fun main(){
     println("Size == ${r.size}")
     println("Result is = $result")
 }
-
-
-
-
-
-
-
-
 
 
 
@@ -664,8 +659,8 @@ fun main (){
 
 
 ////// Testing ETA // Success
-/*
 
+/*
 fun geoJsonToCoordinates() = listOf(
     Coordinate(latitude = "40.755997", longitude = "-73.940509"),
     Coordinate(latitude = "40.75629",  longitude = "-73.940229"),
@@ -706,13 +701,13 @@ fun geoJsonToCoordinates() = listOf(
 fun main(){
     val calculator = EtaCalculator()
 
-    val currentStop = CurrentStopDetails(
+    val currentStop = FromStopDetails(
         "40.755997",
         "-73.940509",
         null
     )
 //
-//    val currentStop = CurrentStopDetails(
+//    val currentStop = FromStopDetails(
 //        "40.759106",
 //        "-73.935157",
 //        null
@@ -728,16 +723,14 @@ fun main(){
         true
     )
 
-    val oldest  = OldestCoordinates(
-        latitude = "40.759064",
-        longitude = "-73.935066",
-        Clock.System.now().toString()
+    val oldest  = TimeStampedCoordinate(
+        coordinate = Coordinate(latitude = "40.755997", longitude = "-73.940509"),
+        Clock.System.now().toEpochMilliseconds()
     )
 
-    val latest = LatestCoordinates(
-        latitude = "40.759064",
-        longitude = "-73.935066",
-        Clock.System.now().toString()
+    val latest = TimeStampedCoordinate(
+        coordinate = Coordinate(latitude = "40.755997", longitude = "-73.940509"),
+        Clock.System.now().toEpochMilliseconds()
     )
 
     val result  = calculator.calculateEta(

@@ -6,6 +6,8 @@ import models.BusStop
 import models.BusData
 import models.Coordinate
 import models.Route
+import models.TimeStampedCoordinate
+import models.toCoordinate
 import org.apache.flink.api.common.functions.OpenContext
 import org.apache.flink.api.common.state.ListState
 import org.apache.flink.api.common.state.ValueState
@@ -31,7 +33,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
     private lateinit var busRouteType: ValueState<RouteType> // also output stream.
 
     /// Need to find out these values for output stream.
-    private lateinit var recentCoordinates: ListState<Pair<Timestamp, Coordinate>>
+    private lateinit var recentCoordinates: ListState<TimeStampedCoordinate>
     private lateinit var lastPassedBusStop: ValueState<Pair<Timestamp?,BusStop>>
     private lateinit var nextBusStop: ValueState<BusStop>
     private lateinit var currentStop: ValueState<BusStop>
@@ -46,7 +48,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
             busStops = getListState<BusStop>(BUS_STOPS)
             busRoutes = getListState<Route>(BUS_ROUTES)
             busRouteType = getValueState<RouteType>(BUS_ROUTE_TYPE)
-            recentCoordinates = getListState<Pair<Timestamp, Coordinate>>(RECENT_COORDINATES)
+            recentCoordinates = getListState<TimeStampedCoordinate>(RECENT_COORDINATES)
             lastPassedBusStop = getValueState<Pair<Timestamp?,BusStop>>(LAST_PASSED_BUS_STOP)
             nextBusStop = getValueState<BusStop>(NEXT_BUS_STOP)
             currentStop = getValueState<BusStop>(CURRENT_STOP)
@@ -84,7 +86,10 @@ class BusRouteAndStopDiscoveryProcessFunction :
                             busId = context.currentKey,
                             currentRoute = currentRoute,
                             routeType = busRouteType.value(),
-                            location = element.value.timestamp to point,
+                            location = TimeStampedCoordinate(
+                                timestamp = element.value.timestamp,
+                                coordinate = point
+                            ),
                             isReturning = isReturning.value(),
                             currentStop = currentStop.value(),
                             nextStop = nextBusStop.value(),
@@ -113,7 +118,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
         collect: (point: Coordinate,currRoute: Route) -> Unit
     ){
         busDiscovery.getPointInRoute(
-            currentPoint = busLocation.coordinates,
+            currentPoint = busLocation.coordinate,
             lastPassedStopId = lastPassedBusStop.value().second.stopId,
             nextStopId = nextBusStop.value().stopId,
             busRoutes = busRoutes.get().toList(),
@@ -127,7 +132,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
              between the same set of stops, but we don't have that route saved yet. Later this can be solved by calling
              MapBox directions Api but for NOW let's assume its on another route between different set of stops.*/
             pointInRoute ?: busDiscovery.getPointInRouteFromScratch(
-                busLocation.coordinates, busRoutes.get().toList()
+                busLocation.coordinate, busRoutes.get().toList()
             ).let { pointInRoute ->
                 val isRunningBetweenDiffPoints = pointInRoute != null
                 /* In case bus is running on different set of stops, we are clearing all the stale metadata so
@@ -144,7 +149,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
         val stops = busStops.get().toList()
         stops.forEach { stop ->
             val hasReachedStop =  busDiscovery.checkIfCurrentPointIsWithinBusStopRadius(
-                currentPoint = busLocation.coordinates,
+                currentPoint = busLocation.coordinate,
                 stop.coordinates
             )
             /// In case bus reached the intended BusStop
@@ -179,10 +184,15 @@ class BusRouteAndStopDiscoveryProcessFunction :
         busLocation: BusLocationData
     ) {
         /// If TRUE that means bus is lost. And in if body we are discovering all the necessary metadata.
-        recentCoordinates.add(busLocation.timestamp to busLocation.coordinates)
+        recentCoordinates.add(
+            TimeStampedCoordinate(
+                timestamp = busLocation.timestamp,
+                coordinate = busLocation.coordinate,
+            )
+        )
 
         busDiscovery.clearRecentCoordinatesIfFirstPointIsWithinStopRadius(
-            recentCoordinates.get().map { it.second },
+            recentCoordinates.get().map { it.toCoordinate() },
             busStops.get().toList()
         ).let { shouldClear -> if (shouldClear) recentCoordinates.clear() }
 
@@ -192,14 +202,14 @@ class BusRouteAndStopDiscoveryProcessFunction :
         ).let { shouldClear -> if (shouldClear) recentCoordinates.clear() }
 
         busDiscovery.checkIfCoordinatesListCoveredTotalDistance(
-            recentCoordinates.get().map { it.second }
+            recentCoordinates.get().map { it.toCoordinate() }
         ).let { hasReachedTotalDistance ->
             if (hasReachedTotalDistance) {
                 val busDiscoveryResult = busDiscovery.findNextLastStopAndIfIsReturningFromScratch(
                     routeType = busRouteType.value(),
                     routes = busRoutes.get().toList(),
                     busStops = busStops.get().toList(),
-                    recentCoordinates = recentCoordinates.get().map { it.second }
+                    recentCoordinates = recentCoordinates.get().map { it.toCoordinate() }
                 )
                 busDiscoveryResult?.let {
                     val lastPassedStop = busStops.get().toList()[it.lastPassedStopIndex]

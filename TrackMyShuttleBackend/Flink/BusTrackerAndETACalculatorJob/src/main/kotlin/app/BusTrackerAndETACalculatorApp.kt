@@ -15,12 +15,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.get
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
 import util.CustomBusLocationSerializer
 import util.CustomBusRoutesSerialization
-import util.CustomBusStopsSerializer
+import util.CustomBusDataSerializer
 import util.EitherOfThree
 import java.time.Duration
 
 private const val BUS_LOCATION_DATA_TOPIC = "BUS_LOCATION_DATA"
-private const val BUS_STOPS_DATA_TOPIC = "BUS_STOPS_DATA"
+private const val BUS_DATA_TOPIC = "BUS_DATA"
 private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
 
 private const val KAFKA_BROKER = "localhost:9092"
@@ -30,8 +30,7 @@ private const val BUS_LOCATION_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
 typealias BusUnion = EitherOfThree<BusLocationData, BusData, Route>
 
 @Suppress("UNCHECKED_CAST")
-class BusTrackerAndETACalculator {
-
+class BusTrackerAndETACalculatorApp {
 
     companion object {
 
@@ -78,20 +77,19 @@ class BusTrackerAndETACalculator {
                     .forBoundedOutOfOrderness<BusLocationData>(Duration.ofSeconds(BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS)
                 ).withTimestampAssigner {element,_ -> element.timestamp.toLong() },
                 "BusLocationDataInputStream")
-                .keyBy { it.busId }
 
-            ///// Stops data
-            val busStopsDataInputStream = environment.fromSource(
+            ///// Bus data
+            val busDataInputStream = environment.fromSource(
                 getKafkaSource{
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
-                        topic = BUS_STOPS_DATA_TOPIC,
-                        deserializer = CustomBusStopsSerializer(json)
+                        topic = BUS_DATA_TOPIC,
+                        deserializer = CustomBusDataSerializer(json)
                     )
                 },
                 WatermarkStrategy.noWatermarks(),
-                "BusStopsDataInputStream"
-            ).keyBy { it.busId }
+                "BusDataInputStream"
+            )
 
             /// Routes data
             val busRoutesDataInputStream = environment.fromSource(
@@ -104,16 +102,16 @@ class BusTrackerAndETACalculator {
                 },
                 WatermarkStrategy.noWatermarks(),
                 "BusRoutesDataInputStream"
-            ).keyBy { it.busId }
+            )
 
 
             /// All three are keyed
 
-            val streamLocation = busLocationDataInputStream.map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
-            val streamBusStops  = busStopsDataInputStream.map { EitherOfThree.Middle<BusData>(it) as BusUnion }
-            val streamBusRoutes = busRoutesDataInputStream.map { EitherOfThree.Right<Route>(it) as BusUnion}
+            val locationDataStream = busLocationDataInputStream.map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
+            val busDataStream  = busDataInputStream.map { EitherOfThree.Middle<BusData>(it) as BusUnion }
+            val routeDataStream = busRoutesDataInputStream.map { EitherOfThree.Right<Route>(it) as BusUnion}
 
-            val combinedInputStream = streamLocation.union(streamBusStops,streamBusRoutes).keyBy {
+            val busLocationWithMetadataStream = locationDataStream.union(busDataStream,routeDataStream).keyBy {
                 when (it) {
                     is EitherOfThree.Left -> it.value.busId
                     is EitherOfThree.Middle -> it.value.busId
@@ -137,16 +135,16 @@ class BusTrackerAndETACalculator {
 
 
 
-
-            val windowedBusLocationDataStream = busLocationDataInputStream
-                //  .keyBy { it.busId } // I dont think i need to keyby() here because the above is already a keyed stream.
+///// TODO
+            val windowedBusLocationDataStream = busLocationWithMetadataStream
+                .keyBy { it.busId }
                 .window(TumblingEventTimeWindows.of(Duration.ofSeconds(BUS_LOCATION_TUMBLING_WINDOW_SIZE_IN_SECONDS)))
                 .process(BusLocationDataProcessingWindowFunction())
                 .keyBy { it.busId }
 
 
 
-            val processedBusTrackingData = busStopsDataInputStream
+            val processedBusTrackingData = busDataInputStream
                 .connect(windowedBusLocationDataStream)
                 .keyBy({it.busId}, { it.busId})
                // .process()
