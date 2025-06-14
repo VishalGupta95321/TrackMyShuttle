@@ -8,6 +8,7 @@ import models.KafkaSourceConfiguration
 import models.Route
 import models.toBusTrackingData
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
+import org.apache.flink.api.common.typeinfo.TypeHint
 import org.apache.flink.connector.base.DeliveryGuarantee
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema
 import org.apache.flink.connector.kafka.sink.KafkaSink
@@ -36,7 +37,7 @@ private const val BUS_ETA_DATA_TOPIC = "BUS_ETA_DATA"
 private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
 
 
-private const val KAFKA_BROKER = "localhost:54302"
+private const val KAFKA_BROKER = "192.168.29.70:9092"
 private const val BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS = 5L
 private const val BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
 
@@ -46,13 +47,12 @@ class BusTrackerAndETACalculatorApp {
 
     companion object {
 
-        private val json = Json {ignoreUnknownKeys = true}
-
         private fun <T> getKafkaSource(
             configure: () -> KafkaSourceConfiguration<T>,
         ) = KafkaSource.builder<T>()
-            .setBootstrapServers(configure().bootstrapServers)
+            .setBootstrapServers("192.168.29.70:9092")
             .setTopics(configure().topic)
+            .setGroupId("test-group")
             .setValueOnlyDeserializer(configure().deserializer)
             .setStartingOffsets(OffsetsInitializer.latest())
             .build()
@@ -60,7 +60,7 @@ class BusTrackerAndETACalculatorApp {
         private fun <T> getKafkaSink(
             configure: () -> KafkaSinkConfiguration<T>,
         ) = KafkaSink.builder<T>()
-            .setBootstrapServers(configure().bootstrapServers)
+            .setBootstrapServers("192.168.29.70:9092")
             .setRecordSerializer(
                 KafkaRecordSerializationSchema.builder<T>()
                     .setTopic(configure().topic)
@@ -83,7 +83,7 @@ class BusTrackerAndETACalculatorApp {
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
                         topic = BUS_LOCATION_DATA_TOPIC,
-                        deserializer = CustomBusLocationSerializer(json)
+                        deserializer = CustomBusLocationSerializer()
                     )},
                 WatermarkStrategy
                     .forBoundedOutOfOrderness<BusLocationData>(Duration.ofSeconds(BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS)
@@ -96,7 +96,7 @@ class BusTrackerAndETACalculatorApp {
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
                         topic = BUS_DATA_TOPIC,
-                        deserializer = CustomBusDataSerializer(json)
+                        deserializer = CustomBusDataSerializer()
                     )
                 },
                 WatermarkStrategy.noWatermarks(),
@@ -109,17 +109,25 @@ class BusTrackerAndETACalculatorApp {
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
                         topic = BUS_ROUTES_DATA_TOPIC,
-                        deserializer = CustomBusRoutesDeserializer(json)
+                        deserializer = CustomBusRoutesDeserializer()
                     )
                 },
                 WatermarkStrategy.noWatermarks(),
                 "BusRoutesDataInputStream"
             )
 
+            val typeInfo = object : TypeHint<EitherOfThree<BusLocationData, BusData, Route>>(){}.typeInfo
 
-            val locationDataStream = busLocationDataInputStream.map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
-            val busDataStream  = busDataInputStream.map { EitherOfThree.Middle<BusData>(it) as BusUnion }
-            val routeDataStream = busRoutesDataInputStream.map { EitherOfThree.Right<Route>(it) as BusUnion}
+            val locationDataStream = busLocationDataInputStream
+                .map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
+                .returns(typeInfo)
+
+            val busDataStream  = busDataInputStream
+                .map { EitherOfThree.Middle<BusData>(it) as BusUnion }
+                .returns(typeInfo)
+            val routeDataStream = busRoutesDataInputStream
+                .map { EitherOfThree.Right<Route>(it) as BusUnion}
+                .returns(typeInfo)
 
             val busLocationWithMetadataStream = locationDataStream.union(busDataStream,routeDataStream).keyBy {
                 when (it) {
@@ -148,7 +156,7 @@ class BusTrackerAndETACalculatorApp {
                 KafkaSinkConfiguration(
                     bootstrapServers = KAFKA_BROKER,
                     topic = BUS_ETA_DATA_TOPIC,
-                    serializer = CustomBusETADataSerializer(json)
+                    serializer = CustomBusETADataSerializer()
                 )
             }
 
@@ -156,12 +164,14 @@ class BusTrackerAndETACalculatorApp {
                 KafkaSinkConfiguration(
                     bootstrapServers = KAFKA_BROKER,
                     topic = BUS_TRACKING_DATA_TOPIC,
-                    serializer = CustomBusTrackingDataSerializer(json)
+                    serializer = CustomBusTrackingDataSerializer()
                 )
             }
 
             busETADataStream.sinkTo(busETADataStreamSink)
             busTrackingDataStream.sinkTo(busTrackingDataStreamSink)
+
+            environment.execute("BusTrackerAndETACalculatorJob")
         }
     }
 }
