@@ -1,18 +1,10 @@
 package app
 
-import models.BusData
 import models.BusETAData
-import models.Coordinate
 import models.BusLocationWithMetadataWindowed
 import org.apache.flink.api.common.functions.OpenContext
-import org.apache.flink.api.common.state.ListState
-import org.apache.flink.api.common.state.ValueState
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
-import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction
 import org.apache.flink.util.Collector
-import util.getValueState
-import util.getListState
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 class BusETACalculatingProcessFunction: KeyedProcessFunction<String, BusLocationWithMetadataWindowed, BusETAData>() {

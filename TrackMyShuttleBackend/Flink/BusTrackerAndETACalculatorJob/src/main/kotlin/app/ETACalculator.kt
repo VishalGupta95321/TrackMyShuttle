@@ -4,7 +4,6 @@ import app.BusRouteAndStopDiscovery.Companion.BUS_STOP_RADIUS_IN_METERS
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfMeasurement
-import kotlinx.serialization.Serializable
 import models.Coordinate
 import models.EtaResult
 import models.TimeStampedCoordinate

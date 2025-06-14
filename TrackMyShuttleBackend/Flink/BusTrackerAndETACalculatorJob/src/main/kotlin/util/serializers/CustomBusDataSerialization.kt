@@ -18,7 +18,7 @@ class CustomBusDataSerializer(
 
     override fun isEndOfStream(p0: BusData?) = false
 
-    override fun getProducedType(): TypeInformation<BusData?> = Types.POJO(BusData::class.java)
+    override fun getProducedType(): TypeInformation<BusData?> = TypeInformation.of(BusData::class.java)
 }
 
 class CustomBusDataDeserializer(

@@ -1,7 +1,6 @@
 package app
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 import models.BusLocationData
 import models.BusData
 import models.KafkaSinkConfiguration
@@ -37,7 +36,7 @@ private const val BUS_ETA_DATA_TOPIC = "BUS_ETA_DATA"
 private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
 
 
-private const val KAFKA_BROKER = "localhost:9092"
+private const val KAFKA_BROKER = "localhost:54302"
 private const val BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS = 5L
 private const val BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
 

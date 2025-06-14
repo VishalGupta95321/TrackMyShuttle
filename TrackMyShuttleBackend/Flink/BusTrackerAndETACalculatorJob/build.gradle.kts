@@ -58,7 +58,7 @@ tasks.test {
 tasks.jar {
     manifest {
         attributes(
-            "Main-Class" to "BusTrackerAndETACalculatorApp"
+            "Main-Class" to "app.BusTrackerAndETACalculatorApp"
         )
     }
 }

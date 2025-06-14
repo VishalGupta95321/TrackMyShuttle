@@ -441,20 +441,17 @@ fun mainn(){
 fun main(){
 
     val j = Json
-    val e  = BusETAData(
-        busId = "1",
-        eta = EtaResult.Ahead(
-            222L,
-            2222L,
-            "ceceec"
-        )
-    )
+    val s = "{\n" +
+            "      \"stopId\": \"S5\",\n" +
+            "      \"coordinates\": {\n" +
+            "        \"latitude\": \"40.75265\",\n" +
+            "        \"longitude\": \"-73.93982\"\n" +
+            "      },\n" +
+            "      \"waitTime\": \"PT0S\"\n" +
+            "    }"
+    println(j.decodeFromString<BusStop>(s))
 
-    val c = j.encodeToString(e)
-    println(c)
-    println(j.decodeFromString<BusETAData>(c))
 }
-
 
 ///// get point in route // SUCCESS
 /*fun main(){

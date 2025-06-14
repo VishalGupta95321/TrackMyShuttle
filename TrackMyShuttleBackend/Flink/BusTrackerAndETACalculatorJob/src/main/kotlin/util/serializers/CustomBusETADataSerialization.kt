@@ -19,7 +19,7 @@ class CustomBusETADataDeserializer(
 
     override fun isEndOfStream(nextElement: BusETAData?): Boolean = false
 
-    override fun getProducedType(): TypeInformation<BusETAData?>? = Types.POJO(BusETAData::class.java)
+    override fun getProducedType(): TypeInformation<BusETAData?>? = TypeInformation.of(BusETAData::class.java)
 }
 
 class CustomBusETADataSerializer(

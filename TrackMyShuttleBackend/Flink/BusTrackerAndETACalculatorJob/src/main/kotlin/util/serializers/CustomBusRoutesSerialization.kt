@@ -20,7 +20,7 @@ class CustomBusRoutesDeserializer(
 
     override fun isEndOfStream(nextElement: Route?): Boolean = false
 
-    override fun getProducedType(): TypeInformation<Route?>? = Types.POJO(Route::class.java)
+    override fun getProducedType(): TypeInformation<Route?>? = TypeInformation.of(Route::class.java)
 
 }
 
