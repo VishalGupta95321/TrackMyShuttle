@@ -1,12 +1,14 @@
 package app
 
-import app.BusRouteAndStopDiscovery.Companion.BUS_STOP_RADIUS_IN_METERS
+import app.BusRouteAndStopDiscoverer.Companion.BUS_STOP_RADIUS_IN_METERS
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfMeasurement
 import models.Coordinate
 import models.EtaResult
 import models.TimeStampedCoordinate
+import models.toCoordinate
+import models.toPoint
 import util.RouteType
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -39,6 +41,8 @@ data class CurrentRouteDetails(
 // Calculates ETA of the bus and also returns the remaining distance.
 class EtaCalculator {
 
+    val busDiscoverer = BusRouteAndStopDiscoverer()
+
     // Failing to provide CurrentStopDetails Arrival time would affect the accuracy of this function.
     @OptIn(ExperimentalTime::class)
     fun calculateEta(
@@ -65,21 +69,25 @@ class EtaCalculator {
         }
 
         val orderedRoutePoints = orderRoutePoints(currentRoute.coordinates, isReturning)
-        val routePoints = convertToPoints(orderedRoutePoints)
+        val currRoutePoints = orderedRoutePoints
 
-        val currentPos = getCurrentPosition(latestCoordinate)
-        val nearestPointInLineIndex = getNearestPointIndex(currentPos, routePoints) ?: return null
-        val remainingPoints = routePoints.subList(nearestPointInLineIndex, routePoints.size)
+        val currentPos = latestCoordinate.toCoordinate()
+
+        val nearestPointInLine = busDiscoverer.nearestPointOnLine(currentPos,currRoutePoints)
+
+        val remainingPoints = (listOf(nearestPointInLine.coordinate) + currRoutePoints.subList(
+            nearestPointInLine.indexOfLastClosestPointInLineString+1,currRoutePoints.size
+        )).map { it.toPoint() }
        //  if (remainingPoints.size < 2) return null
 
         val remainingDistance = getLineLength(remainingPoints) - BUS_STOP_RADIUS_IN_METERS ///// version 2
         val expectedSpeed = getExpectedSpeed(currentRoute)
-        //if (expectedSpeed <= 0) return null
+        if (expectedSpeed <= 0) return null
 
         val timeElapsedSeconds = getTimeElapsedSeconds(startTimeMillis, nowMillis)
        // if (timeElapsedSeconds <= 0) return null
 
-        val actualDistance = TurfMeasurement.distance(startPoint, currentPos, "meters")
+        val actualDistance = TurfMeasurement.distance(startPoint, currentPos.toPoint(), "meters")
         val expectedDistance = expectedSpeed * timeElapsedSeconds
         val deltaDistance = actualDistance - expectedDistance
 
@@ -119,14 +127,6 @@ class EtaCalculator {
         return if (isReturning) coordinates.asReversed() else coordinates
     }
 
-    private fun convertToPoints(coordinates: List<Coordinate>): List<Point> {
-        return coordinates.map { Point.fromLngLat(it.longitude.toDouble(), it.latitude.toDouble()) }
-    }
-
-    private fun getCurrentPosition(latestCoordinate: TimeStampedCoordinate): Point {
-        return  Point.fromLngLat(latestCoordinate.coordinate.longitude.toDouble(), latestCoordinate.coordinate.latitude.toDouble())
-    }
-
     private fun getNearestPointIndex(currentPos: Point, routePoints: List<Point>): Int? {
         var nearestIndex : Int? = null
         var minDistance = Double.MAX_VALUE
@@ -161,6 +161,7 @@ class EtaCalculator {
         remainingDistance: Double,
         expectedSpeed: Double
     ): EtaResult {
+
         val timeCorrectionSeconds = deltaDistance / expectedSpeed
         val etaSeconds = remainingDistance / expectedSpeed
         val adjustedEtaSeconds = etaSeconds - timeCorrectionSeconds
