@@ -1,8 +1,8 @@
 package app
 
-import kotlinx.serialization.json.Json
 import models.BusLocationData
 import models.BusData
+import models.BusLocationWithMetadata
 import models.KafkaSinkConfiguration
 import models.KafkaSourceConfiguration
 import models.Route
@@ -16,13 +16,14 @@ import org.apache.flink.connector.kafka.source.KafkaSource
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.getExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
+import org.apache.flink.streaming.api.windowing.triggers.ContinuousEventTimeTrigger
 import util.BusUnion
 import util.serializers.CustomBusLocationSerializer
 import util.serializers.CustomBusDataSerializer
 import util.serializers.CustomBusRoutesDeserializer
 import util.EitherOfThree
-import util.serializers.CustomBusETADataSerializer
-import util.serializers.CustomBusTrackingDataSerializer
+import util.serializers.BusETADataKafkaRecordSerializer
+import util.serializers.BusTrackingDataKafkaRecordSerializer
 import java.time.Duration
 
 
@@ -38,7 +39,8 @@ private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
 
 
 private const val KAFKA_BROKER = "192.168.29.70:9092"
-private const val BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS = 5L
+private const val BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_MILLIS = 5000L
+private const val BUS_LOCATION_STREAM_MAX_IDLENESS_TIMEOUT_IN_MILLIS = 10000L  /// In case any partition is Idle for 10 sec
 private const val BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
 
 
@@ -50,9 +52,9 @@ class BusTrackerAndETACalculatorApp {
         private fun <T> getKafkaSource(
             configure: () -> KafkaSourceConfiguration<T>,
         ) = KafkaSource.builder<T>()
-            .setBootstrapServers("192.168.29.70:9092")
+            .setBootstrapServers(KAFKA_BROKER)
+            .setGroupId("FlinkGroup")
             .setTopics(configure().topic)
-            .setGroupId("test-group")
             .setValueOnlyDeserializer(configure().deserializer)
             .setStartingOffsets(OffsetsInitializer.latest())
             .build()
@@ -60,13 +62,8 @@ class BusTrackerAndETACalculatorApp {
         private fun <T> getKafkaSink(
             configure: () -> KafkaSinkConfiguration<T>,
         ) = KafkaSink.builder<T>()
-            .setBootstrapServers("192.168.29.70:9092")
-            .setRecordSerializer(
-                KafkaRecordSerializationSchema.builder<T>()
-                    .setTopic(configure().topic)
-                    .setValueSerializationSchema(configure().serializer)
-                    .build()
-            )
+            .setBootstrapServers(KAFKA_BROKER)
+            .setRecordSerializer(configure().serializer)
             .setDeliveryGuarantee(DeliveryGuarantee.NONE)
             .build()
 
@@ -75,9 +72,9 @@ class BusTrackerAndETACalculatorApp {
         @JvmStatic
         fun main(args: Array<String>) {
 
-            val environment = getExecutionEnvironment()
+            val environment = getExecutionEnvironment().setParallelism(3)
 
-            //// Location data
+            //// Location data /// BUS will send data every 2 sec lets assume
             val busLocationDataInputStream = environment.fromSource(
                 getKafkaSource{
                     KafkaSourceConfiguration(
@@ -85,9 +82,12 @@ class BusTrackerAndETACalculatorApp {
                         topic = BUS_LOCATION_DATA_TOPIC,
                         deserializer = CustomBusLocationSerializer()
                     )},
-                WatermarkStrategy
-                    .forBoundedOutOfOrderness<BusLocationData>(Duration.ofSeconds(BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_SECONDS)
-                ).withTimestampAssigner {element,_ -> element.timestamp.toLong() },
+                WatermarkStrategy.forGenerator { c ->
+                    CustomFallBackBoundedOutOfOrdernessWatermark(
+                        BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_MILLIS,
+                        BUS_LOCATION_STREAM_MAX_IDLENESS_TIMEOUT_IN_MILLIS,
+                    )
+                }.withTimestampAssigner {element,_ -> element.timestamp.toLong() },
                 "BusLocationDataInputStream")
 
             ///// Bus data
@@ -99,7 +99,7 @@ class BusTrackerAndETACalculatorApp {
                         deserializer = CustomBusDataSerializer()
                     )
                 },
-                WatermarkStrategy.noWatermarks(),
+                WatermarkStrategy.noWatermarks<BusData>().withIdleness(Duration.ofSeconds(1L)),
                 "BusDataInputStream"
             )
 
@@ -112,7 +112,7 @@ class BusTrackerAndETACalculatorApp {
                         deserializer = CustomBusRoutesDeserializer()
                     )
                 },
-                WatermarkStrategy.noWatermarks(),
+                WatermarkStrategy.noWatermarks<Route>().withIdleness(Duration.ofSeconds(1L)),
                 "BusRoutesDataInputStream"
             )
 
@@ -155,16 +155,14 @@ class BusTrackerAndETACalculatorApp {
             val busETADataStreamSink = getKafkaSink {
                 KafkaSinkConfiguration(
                     bootstrapServers = KAFKA_BROKER,
-                    topic = BUS_ETA_DATA_TOPIC,
-                    serializer = CustomBusETADataSerializer()
+                    serializer = BusETADataKafkaRecordSerializer(BUS_ETA_DATA_TOPIC)
                 )
             }
 
             val busTrackingDataStreamSink = getKafkaSink {
                 KafkaSinkConfiguration(
                     bootstrapServers = KAFKA_BROKER,
-                    topic = BUS_TRACKING_DATA_TOPIC,
-                    serializer = CustomBusTrackingDataSerializer()
+                    serializer = BusTrackingDataKafkaRecordSerializer(BUS_TRACKING_DATA_TOPIC)
                 )
             }
 

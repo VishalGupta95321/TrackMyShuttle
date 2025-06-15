@@ -9,25 +9,19 @@ import org.apache.flink.api.common.typeinfo.TypeHint
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.common.typeinfo.Types
 
-
-/// FIXME Complete me
 class CustomBusRoutesDeserializer: DeserializationSchema<Route>{
-
 
     @Transient lateinit var json: Json
 
     override fun open(context: DeserializationSchema.InitializationContext?) {
         json = Json{ignoreUnknownKeys = true}
     }
-
     override fun deserialize(inputMesage: ByteArray): Route {
        return inputMesage.let {
            json.decodeFromString<Route>(it.decodeToString())
        }
     }
-
     override fun isEndOfStream(nextElement: Route): Boolean = false
-
     override fun getProducedType(): TypeInformation<Route> = object : TypeHint<Route>(){}.typeInfo
 
 }

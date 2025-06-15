@@ -46,8 +46,10 @@ dependencies {
     implementation("com.mapbox.mapboxsdk:mapbox-sdk-turf:7.4.0")
 
 //    /// Remove it if not needed.
-//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
+    //// Remove it later after testing
+    implementation("org.apache.kafka:kafka-clients:4.0.0")
 }
 
 tasks.test {

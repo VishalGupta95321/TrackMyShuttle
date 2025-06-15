@@ -11,7 +11,6 @@ class BusETACalculatingProcessFunction: KeyedProcessFunction<String, BusLocation
 
     private lateinit var etaCalculator : EtaCalculator
 
-
     override fun open(openContext: OpenContext?) {
         etaCalculator = EtaCalculator()
     }
@@ -21,6 +20,7 @@ class BusETACalculatingProcessFunction: KeyedProcessFunction<String, BusLocation
         context: KeyedProcessFunction<String, BusLocationWithMetadataWindowed, BusETAData>.Context,
         out: Collector<BusETAData>
     ) {
+
         val currRoute = element.busLocationMetadata.currentRoute
 
         val currentRouteDetails = CurrentRouteDetails(

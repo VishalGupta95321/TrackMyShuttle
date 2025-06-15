@@ -24,6 +24,7 @@ import kotlin.time.toDuration
 data class NearestPoint(
     val coordinate: Coordinate,
     val distanceInMeters: Double,
+    val indexOfLastClosestPointInLineString: Int  /// It usually gives In case the nearest point is same as index 6 point it still return index 5 until it crosses index 6 point in line after which it will return index 6 and so on.
 )
 
 data class PointInRoute(
@@ -37,7 +38,7 @@ data class BusDiscoveryResult(
     val isReturning: Boolean
 )
 
-class BusRouteAndStopDiscovery {
+class BusRouteAndStopDiscoverer {
 
     fun findNextLastStopAndIfIsReturningFromScratch(
         routeType: RouteType,
@@ -45,6 +46,7 @@ class BusRouteAndStopDiscovery {
         busStops: List<BusStop>,
         recentCoordinates: List<Coordinate>,
     ): BusDiscoveryResult? {
+
         var nextStopIndex: Int? = null
         var lastPassedStopIndex: Int? = null
         var isReturning: Boolean? = false
@@ -98,13 +100,13 @@ class BusRouteAndStopDiscovery {
             )
 
         if (stop1DistanceFromLastPoint < stop1DistanceFromFirstPoint) {
-            println("Here 1")
+            println("Here 1 ===================")
             nextStopIndex = currentStop1.first
             lastPassedStopIndex = currentStop2.first
             isReturning = checkIfBusIsReturning(routeType, nextStopIndex, lastPassedStopIndex)
         }
         if (stop2DistanceFromLastPoint < stop2DistanceFromFirstPoint) {
-            println("Here 2")
+            println("Here 2 ======================")
             nextStopIndex = currentStop2.first
             lastPassedStopIndex = currentStop1.first
             isReturning = checkIfBusIsReturning(routeType, nextStopIndex, lastPassedStopIndex)
@@ -119,7 +121,7 @@ class BusRouteAndStopDiscovery {
                 checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop2.second.coordinates)
 
             if (isCurrentPointIsWithinStop1Radius) {
-                println(" Bus Crossed the Stop")
+                println(" Bus Crossed the Stop =====================")
                 lastPassedStopIndex = currentStop1.first
                 nextStopIndex = getNextStopIndex(
                     currentStopIndex = currentStop1.first,
@@ -137,7 +139,7 @@ class BusRouteAndStopDiscovery {
             }
 
             if (isCurrentPointIsWithinStop2Radius) {
-                println(" Bus Crossed the Stop")
+                println(" Bus Crossed the Stop ======================")
                 lastPassedStopIndex = currentStop2.first
                 nextStopIndex = getNextStopIndex(
                     currentStopIndex = currentStop2.first,
@@ -155,7 +157,9 @@ class BusRouteAndStopDiscovery {
             }
         }
 
-        return BusDiscoveryResult(lastPassedStopIndex!!, nextStopIndex!!, isReturning!!)
+        return if (lastPassedStopIndex != null && isReturning != null && nextStopIndex != null) {
+            BusDiscoveryResult(lastPassedStopIndex, nextStopIndex, isReturning)
+        } else null
     }
 
     // Only get called if already know the values required in the function's arguments
@@ -212,7 +216,7 @@ class BusRouteAndStopDiscovery {
         }
 
         availableRoutes.sortedBy { it.routeCount }.forEach { route ->
-            nearestPointOnLine(currentPoint, route).let { nearestPoint ->
+            nearestPointOnLine(currentPoint, route.coordinates).let { nearestPoint ->
                 if (nearestPoint.distanceInMeters <= MAX_GPS_ERROR_IN_METERS)
                     return PointInRoute(
                         routeId = route.routeId,
@@ -223,14 +227,18 @@ class BusRouteAndStopDiscovery {
         return null
     }
 
-    /// same as getPointInRoute() but when you dont know other details if the bus like next, last stop, isReturning.
+    // same as getPointInRoute() but when you dont know other details if the bus like next, last stop, isReturning.
     // Only called when figuring last,next stop from scratch.
+    // Note: Don't call else where because if the point is Bus Stop, then the point is eligible for two routes.
+    // While discovering the Stops We are taking route id only from the first point to discover the route
+    // ( in case bus entered into new route after that, we will know because we are checking if it crosses a bus stop)
+    // and strictly making sure that first point is not a Bus Stop.
     fun getPointInRouteFromScratch(
         currentPoint: Coordinate,
         busRoutes: List<Route>
     ): PointInRoute? {
         busRoutes.sortedBy { it.routeCount }.forEach { route ->
-            nearestPointOnLine(currentPoint, route).let { nearestPoint ->
+            nearestPointOnLine(currentPoint, route.coordinates).let { nearestPoint ->
                 if (nearestPoint.distanceInMeters <= MAX_GPS_ERROR_IN_METERS)
                     return PointInRoute(
                         routeId = route.routeId,
@@ -241,22 +249,25 @@ class BusRouteAndStopDiscovery {
         return null
     }
 
-    private fun nearestPointOnLine(
+    fun nearestPointOnLine(
         coordinate: Coordinate,
-        route: Route,
+        routePoints: List<Coordinate>,
     ): NearestPoint {
         val point = coordinate.toPoint()
         val nearestPoint =
-            TurfMisc.nearestPointOnLine(point, route.coordinates.map { it.toPoint() }, TurfConstants.UNIT_METERS)
+            TurfMisc.nearestPointOnLine(point, routePoints.map { it.toPoint() }, TurfConstants.UNIT_METERS)
         val nearestCoord = Coordinate(
             (nearestPoint.geometry() as Point).coordinates().last().toString(),
             (nearestPoint.geometry() as Point).coordinates().first().toString()
         )
         val distanceToNearestCoord = nearestPoint.properties()!!.get("dist").toString()
 
+        val index = nearestPoint.properties()!!.get("index").toString()
+
         return NearestPoint(
             coordinate = nearestCoord,
-            distanceInMeters = distanceToNearestCoord.toDouble()
+            distanceInMeters = distanceToNearestCoord.toDouble(),
+            indexOfLastClosestPointInLineString = index.toInt()
         )
     }
 
@@ -287,6 +298,7 @@ class BusRouteAndStopDiscovery {
                 if (result) { return true }
             }
         }
+
         return false
     }
 

@@ -15,15 +15,12 @@ class CustomBusDataSerializer: DeserializationSchema<BusData> {
     override fun open(context: DeserializationSchema.InitializationContext?) {
         json = Json{ignoreUnknownKeys = true}
     }
-
     override fun deserialize(inputMessgae: ByteArray): BusData {
        return inputMessgae.let { message ->
             json.decodeFromString<BusData>(inputMessgae.decodeToString())
         }
     }
-
     override fun isEndOfStream(p0: BusData?) = false
-
     override fun getProducedType(): TypeInformation<BusData> = object : TypeHint<BusData>(){}.typeInfo
 }
 
@@ -34,7 +31,6 @@ class CustomBusDataDeserializer: SerializationSchema<BusData>{
     override fun open(context: SerializationSchema.InitializationContext?) {
         json = Json{ignoreUnknownKeys = true}
     }
-
     override fun serialize(message: BusData): ByteArray {
         return message.let { message ->
             json.encodeToString(message).toByteArray()

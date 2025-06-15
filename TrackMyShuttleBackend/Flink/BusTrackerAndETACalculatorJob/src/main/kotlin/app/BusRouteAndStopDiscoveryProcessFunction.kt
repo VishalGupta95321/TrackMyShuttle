@@ -23,7 +23,7 @@ import util.getValueState
 class BusRouteAndStopDiscoveryProcessFunction :
     KeyedProcessFunction<String, EitherOfThree<BusLocationData, BusData, Route>, BusLocationWithMetadata>() {
 
-    private lateinit var busDiscovery: BusRouteAndStopDiscovery
+    private lateinit var busDiscovery: BusRouteAndStopDiscoverer
 
     /// Need to save the routes and bus stops for the particular bus from the input stream.
     /// These 3 values cant be NULL because user need to update these things in order to register and use the app.
@@ -41,7 +41,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
 
     override fun open(openContext: OpenContext?) {
 
-        busDiscovery = BusRouteAndStopDiscovery()
+        busDiscovery = BusRouteAndStopDiscoverer()
 
         runtimeContext.apply {
             busStops = getListState<BusStop>(BUS_STOPS)
@@ -68,11 +68,11 @@ class BusRouteAndStopDiscoveryProcessFunction :
                 /// Discovering Bus MetaData if not available already.
                 if (lastPassedBusStop.value() == null || nextBusStop.value() == null || isReturning.value() == null) {
                     findNextLastStopAndIfIsReturningFromScratch(element.value)
+                    return@processElement
                 }
 
                 /// Checking If Bus reached the destination stop and adjusting the metadata accordingly.
                 checkIfBusReachedDestAndUpdateMetadata(element.value)
-
 
                 /// Getting a POINT from available routes between set of stops.
                 if (lastPassedBusStop.value() != null || nextBusStop.value() != null || isReturning.value() != null)

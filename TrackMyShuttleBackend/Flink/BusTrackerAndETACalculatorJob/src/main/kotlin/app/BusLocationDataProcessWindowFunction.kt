@@ -16,6 +16,7 @@ class BusLocationDataProcessWindowFunction: ProcessWindowFunction<BusLocationWit
     ) {
         /// Coord filtered by lastPassed Stop and next Stop, making sure we are not mixing up data running on route with another set of stops.
 
+        println("   ENTERED IN WINDOW PROCESS =================================================================================  ")
         val firstCoord = elements.first()
 
         val routeFilteredCoordinates =  elements.filter { it.lastPassedStop == firstCoord.lastPassedStop && it.nextStop == firstCoord.nextStop }
