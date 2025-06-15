@@ -4,11 +4,10 @@ import kotlinx.serialization.json.Json
 import org.apache.flink.api.common.serialization.DeserializationSchema
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.common.typeinfo.Types
 import models.BusData
 import org.apache.flink.api.common.typeinfo.TypeHint
 
-class CustomBusDataSerializer: DeserializationSchema<BusData> {
+class CustomBusDataDeserializer: DeserializationSchema<BusData> {
 
     @Transient lateinit var json: Json
 
@@ -24,7 +23,7 @@ class CustomBusDataSerializer: DeserializationSchema<BusData> {
     override fun getProducedType(): TypeInformation<BusData> = object : TypeHint<BusData>(){}.typeInfo
 }
 
-class CustomBusDataDeserializer: SerializationSchema<BusData>{
+class CustomBusDataSerializer: SerializationSchema<BusData>{
 
     @Transient lateinit var json: Json
 

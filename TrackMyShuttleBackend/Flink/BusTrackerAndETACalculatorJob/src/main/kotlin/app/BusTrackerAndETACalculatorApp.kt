@@ -2,7 +2,6 @@ package app
 
 import models.BusLocationData
 import models.BusData
-import models.BusLocationWithMetadata
 import models.KafkaSinkConfiguration
 import models.KafkaSourceConfiguration
 import models.Route
@@ -10,20 +9,19 @@ import models.toBusTrackingData
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeHint
 import org.apache.flink.connector.base.DeliveryGuarantee
-import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema
 import org.apache.flink.connector.kafka.sink.KafkaSink
 import org.apache.flink.connector.kafka.source.KafkaSource
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.getExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
-import org.apache.flink.streaming.api.windowing.triggers.ContinuousEventTimeTrigger
 import util.BusUnion
-import util.serializers.CustomBusLocationSerializer
-import util.serializers.CustomBusDataSerializer
+import util.serializers.CustomBusLocationDeserializer
+import util.serializers.CustomBusDataDeserializer
 import util.serializers.CustomBusRoutesDeserializer
 import util.EitherOfThree
 import util.serializers.BusETADataKafkaRecordSerializer
 import util.serializers.BusTrackingDataKafkaRecordSerializer
+import util.serializers.BusUpdatesRecordSerializer
 import java.time.Duration
 
 
@@ -36,6 +34,7 @@ private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
 /// Kafka Sink Topics
 private const val BUS_ETA_DATA_TOPIC = "BUS_ETA_DATA"
 private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
+private const val BUS_UPDATES_TOPIC = "BUS_UPDATES"
 
 
 private const val KAFKA_BROKER = "192.168.29.70:9092"
@@ -81,7 +80,7 @@ class BusTrackerAndETACalculatorApp {
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
                         topic = BUS_LOCATION_DATA_TOPIC,
-                        deserializer = CustomBusLocationSerializer()
+                        deserializer = CustomBusLocationDeserializer()
                     )},
                 WatermarkStrategy.forGenerator { c ->
                     CustomFallBackBoundedOutOfOrdernessWatermark(
@@ -97,7 +96,7 @@ class BusTrackerAndETACalculatorApp {
                     KafkaSourceConfiguration(
                         bootstrapServers = KAFKA_BROKER,
                         topic = BUS_DATA_TOPIC,
-                        deserializer = CustomBusDataSerializer()
+                        deserializer = CustomBusDataDeserializer()
                     )
                 },
                 WatermarkStrategy.noWatermarks<BusData>().withIdleness(Duration.ofSeconds(1L)),
@@ -152,6 +151,10 @@ class BusTrackerAndETACalculatorApp {
             val busTrackingDataStream = busLocationWithMetadataStream
                 .map { it.toBusTrackingData() }
 
+            val busUpdatesDataStream = busTrackingDataStream.keyBy {
+                it.busId
+            }.process(BusUpdatesProcessFunction())
+
 
             val busETADataStreamSink = getKafkaSink {
                 KafkaSinkConfiguration(
@@ -167,8 +170,18 @@ class BusTrackerAndETACalculatorApp {
                 )
             }
 
+
+            val busUpdatesStreamSink = getKafkaSink {
+                KafkaSinkConfiguration(
+                    bootstrapServers = KAFKA_BROKER,
+                    serializer = BusUpdatesRecordSerializer(BUS_UPDATES_TOPIC)
+                )
+            }
+
+
             busETADataStream.sinkTo(busETADataStreamSink)
             busTrackingDataStream.sinkTo(busTrackingDataStreamSink)
+            busUpdatesDataStream.sinkTo(busUpdatesStreamSink)
 
             environment.execute("BusTrackerAndETACalculatorJob")
         }

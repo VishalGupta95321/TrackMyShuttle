@@ -26,17 +26,4 @@ class CustomBusRoutesDeserializer: DeserializationSchema<Route>{
 
 }
 
-class CustomBusRoutesSerializer: SerializationSchema<Route>{
-
-    @Transient lateinit var json: Json
-
-    override fun open(context: SerializationSchema.InitializationContext?) {
-        json = Json{ignoreUnknownKeys = true}
-    }
-    override fun serialize(message: Route): ByteArray {
-        return message.let {
-            json.encodeToString(it).toByteArray()
-        }
-    }
-}
 
