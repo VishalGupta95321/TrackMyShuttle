@@ -40,7 +40,8 @@ private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
 
 private const val KAFKA_BROKER = "192.168.29.70:9092"
 private const val BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_MILLIS = 5000L
-private const val BUS_LOCATION_STREAM_MAX_IDLENESS_TIMEOUT_IN_MILLIS = 10000L  /// In case any partition is Idle for 10 sec
+private const val BUS_LOCATION_STREAM_MAX_IDLENESS_TIMEOUT_IN_MILLIS = 5000L  /// In case any partition is Idle //// Greater
+// then BUS interval of sending location also take partitions in account. For ex- 3 partition = 2sec(bus location interval) * 3 part = 6 sec , idleness should be >=
 private const val BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS =10L
 
 
@@ -87,7 +88,7 @@ class BusTrackerAndETACalculatorApp {
                         BUS_LOCATION_STREAM_MAX_OUT_OF_ORDERNESS_IN_MILLIS,
                         BUS_LOCATION_STREAM_MAX_IDLENESS_TIMEOUT_IN_MILLIS,
                     )
-                }.withTimestampAssigner {element,_ -> element.timestamp.toLong() },
+                }.withTimestampAssigner {element,_ -> element.timestamp.toLong() }.withIdleness(Duration.ofMillis(BUS_LOCATION_STREAM_MAX_IDLENESS_TIMEOUT_IN_MILLIS)),
                 "BusLocationDataInputStream")
 
             ///// Bus data

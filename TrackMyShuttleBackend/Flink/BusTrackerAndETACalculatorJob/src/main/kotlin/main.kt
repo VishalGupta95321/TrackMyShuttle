@@ -631,27 +631,34 @@ fun main(){
     val p = KafkaBusSender
 
 ////
-//    p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
-//    p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
-//    p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
-//    p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
-//   p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
-//   p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
-//
+
+//    runBlocking {
+//        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
+//    }
+
+
 
 
 
 
 //
     runBlocking {
-        r.forEach {
-            delay(1000)
-            p.send(topic = BUS_LOCATION_DATA_TOPIC, value = json.encodeToString(BusLocationData(
-                busId = "1",
-                coordinate = it.second,
-                timestamp = Clock.System.now().toEpochMilliseconds(),
-            )))
+        repeat(100) {
+            r.forEach {
+                delay(1000)
+                p.send(topic = BUS_LOCATION_DATA_TOPIC, value = json.encodeToString(BusLocationData(
+                    busId = "1",
+                    coordinate = it.second,
+                    timestamp = Clock.System.now().toEpochMilliseconds(),
+                )))
+            }
         }
+
     }
 
 }
