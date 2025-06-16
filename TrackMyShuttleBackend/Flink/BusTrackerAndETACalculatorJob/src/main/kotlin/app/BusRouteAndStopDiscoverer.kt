@@ -306,7 +306,6 @@ class BusRouteAndStopDiscoverer {
 
 
     ///// Clearing the recent is the time interval between the next coordinate exceeds the interval time.
-    ///// Got Called everytime we add new point in the recentCoord list.
     fun clearRecentCoordinatesIfIntervalPassed(
         recentCoordinates: List<TimeStampedCoordinate>,
         currentCoordinateTimestamp: TimeStamp,
@@ -321,8 +320,6 @@ class BusRouteAndStopDiscoverer {
         return false
     }
 
-    //// Checking if we have enough recent coordinates
-    //// We will call findNextLastStopAndIfIsReturningFromScratch() after this function
     fun checkIfCoordinatesListCoveredTotalDistance(
         recentCoordinates: List<Coordinate>,
     ): Boolean {
@@ -335,6 +332,37 @@ class BusRouteAndStopDiscoverer {
         val distanceInMeters = TurfMeasurement.length(lineString, "meters")
 
         return distanceInMeters >= MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS
+    }
+
+    fun checkIfBusIsInSameDirectionInSameRoute(
+        lastPoint: PointWithRouteId,
+        currentPoint: PointWithRouteId,
+        nextStopPoint: Point,
+        updateLastPoint: (point: PointWithRouteId?) -> Unit
+    ): Boolean{
+
+        if (currentPoint.routeId != lastPoint.routeId){
+            updateLastPoint(null)
+            return false
+        }
+
+        val distanceBetweenPoints = TurfMeasurement.distance(lastPoint.point,currentPoint.point, TurfConstants.UNIT_METERS)
+        if (distanceBetweenPoints < 10.0) {
+            println("   NOT 10 METER YET ======================================== = = = = = = = = == = = ")
+            return false
+        }
+
+        val distanceToNextFromCurrPoint = TurfMeasurement.distance(nextStopPoint,currentPoint.point)
+        val distanceToNextFromLastPoint = TurfMeasurement.distance(lastPoint.point,currentPoint.point)
+
+        return if (distanceToNextFromCurrPoint < distanceToNextFromLastPoint) {
+            updateLastPoint(currentPoint)
+            true
+        } else {
+            updateLastPoint(null)
+            false
+        }
+
     }
 
     companion object{

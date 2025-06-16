@@ -117,36 +117,16 @@ class BusRouteAndStopDiscoveryProcessFunction :
     its on the same direction and update the last point to current point and if the distance is more than last point then not
     in same direction and clear the last point and clear the Metadata. So it have to calculate the fresh metadata next time. */
     private fun checkIfBusIsInSameDirectionInSameRoute(
-        lastPoint: PointWithRouteId?,
+        lastPoint: PointWithRouteId,
         currentPoint: PointWithRouteId,
         nextStopPoint: Point,
         updateLastPoint: (point: PointWithRouteId?) -> Unit
     ): Boolean{
-
-        lastPoint ?: return false
-
-        if (currentPoint.routeId != lastPoint.routeId){
-            updateLastPoint(null)
-            return false
-        }
-
-        val distanceBetweenPoints = TurfMeasurement.distance(lastPoint.point,currentPoint.point, TurfConstants.UNIT_METERS)
-        if (distanceBetweenPoints < 10.0) {
-            println("   NOT 10 METER YET ======================================== = = = = = = = = == = = ")
-            return false
-        }
-
-        val distanceToNextFromCurrPoint = TurfMeasurement.distance(nextStopPoint,currentPoint.point)
-        val distanceToNextFromLastPoint = TurfMeasurement.distance(lastPoint.point,currentPoint.point)
-
-        return if (distanceToNextFromCurrPoint < distanceToNextFromLastPoint) {
-            updateLastPoint(currentPoint)
-            true
-        } else {
-            updateLastPoint(null)
-            false
-        }
-
+       return busDiscovery.checkIfBusIsInSameDirectionInSameRoute(
+           lastPoint,
+           currentPoint,
+           nextStopPoint,
+       ) { updateLastPoint(it) }
     }
 
     private fun getPointInRouteFromAvailableRoutesAndCollectAndUpdateMetadata(

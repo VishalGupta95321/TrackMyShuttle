@@ -641,7 +641,7 @@ fun main(){
         )
     }
 
-    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates,stopsData)
+    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates.reversed(),stopsData)
 
     println(r)
 
@@ -650,15 +650,15 @@ fun main(){
 ////
 
    //runBlocking {
-//        stopsData.forEach { stop->
-//           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
-//        }
-//        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
+        stopsData.forEach { stop->
+           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
+        }
+        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
   //  }
 
 
