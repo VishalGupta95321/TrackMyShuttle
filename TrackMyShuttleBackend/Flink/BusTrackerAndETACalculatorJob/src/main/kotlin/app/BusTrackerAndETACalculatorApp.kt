@@ -2,6 +2,7 @@ package app
 
 import models.BusLocationData
 import models.BusData
+import models.BusStop
 import models.KafkaSinkConfiguration
 import models.KafkaSourceConfiguration
 import models.Route
@@ -14,7 +15,7 @@ import org.apache.flink.connector.kafka.source.KafkaSource
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.getExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows
-import util.BusUnion
+import util.CombinedStream
 import util.serializers.CustomBusLocationDeserializer
 import util.serializers.CustomBusDataDeserializer
 import util.serializers.CustomBusRoutesDeserializer
@@ -22,12 +23,14 @@ import util.EitherOfThree
 import util.serializers.BusETADataKafkaRecordSerializer
 import util.serializers.BusTrackingDataKafkaRecordSerializer
 import util.serializers.BusUpdatesRecordSerializer
+import util.serializers.CustomBusStopDataDeserializer
 import java.time.Duration
 
 
 //// Kafka Source Topics
 private const val BUS_LOCATION_DATA_TOPIC = "BUS_LOCATION_DATA"
 private const val BUS_DATA_TOPIC = "BUS_DATA"
+private const val BUS_STOP_DATA_TOPIC = "BUS_STOP_DATA"
 private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
 
 
@@ -116,39 +119,74 @@ class BusTrackerAndETACalculatorApp {
                 "BusRoutesDataInputStream"
             )
 
-            val typeInfo = object : TypeHint<EitherOfThree<BusLocationData, BusData, Route>>(){}.typeInfo
+            /// Stops Data
+            val busStopsDataInputStream = environment.fromSource(
+                getKafkaSource {
+                    KafkaSourceConfiguration(
+                        bootstrapServers = KAFKA_BROKER,
+                        topic = BUS_STOP_DATA_TOPIC,
+                        deserializer = CustomBusStopDataDeserializer()
+                    )
+                },
+                WatermarkStrategy.noWatermarks<BusStop>().withIdleness(Duration.ofSeconds(1L)),
+                "BusStopsDataInputStream"
+
+            ) /// TODO Here
+
+
+
+            val typeInfo = object : TypeHint<EitherOfThree<BusStop, BusData, Route>>(){}.typeInfo
+
+//            val locationDataStream = busLocationDataInputStream               ///// DELETE
+//                .map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
+//                .returns(typeInfo)
 
             val locationDataStream = busLocationDataInputStream
-                .map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
+
+            /// Left
+            val busStopDataStream = busStopsDataInputStream
+                .map { EitherOfThree.BusStop<BusStop>(it) as CombinedStream }
                 .returns(typeInfo)
 
+            /// Middle
             val busDataStream  = busDataInputStream
-                .map { EitherOfThree.Middle<BusData>(it) as BusUnion }
+                .map { EitherOfThree.Bus<BusData>(it) as CombinedStream }
                 .returns(typeInfo)
+
+            // Right
             val routeDataStream = busRoutesDataInputStream
-                .map { EitherOfThree.Right<Route>(it) as BusUnion}
+                .map { EitherOfThree.Route<Route>(it) as CombinedStream}
                 .returns(typeInfo)
 
-            val busLocationWithMetadataStream = locationDataStream.union(busDataStream,routeDataStream).keyBy {
-                when (it) {
-                    is EitherOfThree.Left -> it.value.busId
-                    is EitherOfThree.Middle -> it.value.busId
-                    is EitherOfThree.Right -> it.value.busId
-                }
-            }.process(BusRouteAndStopDiscoveryProcessFunction())
 
-            val windowedBusLocationDataStream = busLocationWithMetadataStream
+
+            val combinedDataStream = busStopDataStream.union(busDataStream,routeDataStream)
+
+
+            val enrichedBusLocationStream = combinedDataStream
+                .connect<BusLocationData>(locationDataStream)
+                .keyBy({"1"},{"1"})   //// changed //// It works but not really scalable I had to use key by because I cant use keyed state, and operator state stays in heap.
+                /// For now its working same as Broadcast state kind of, I didn't use broadcast state because it also stays in heap. /// Will find out the solution later but for now its working. FIXME
+                .process(BusLocationEnrichingProcessFunction())
+                .setParallelism(1)
+
+
+            val busLocationDataWithMetadataStream = enrichedBusLocationStream
+                .keyBy { it.busData.busId }
+                .process(BusRouteAndStopDiscoveryProcessFunction())
+
+
+            val windowedBusLocationDataStream = busLocationDataWithMetadataStream
                 .keyBy { it.busId }
                 .window(TumblingEventTimeWindows.of(Duration.ofSeconds(BUS_LOCATION_WITH_METADATA_TUMBLING_WINDOW_SIZE_IN_SECONDS)))
                 .process(BusLocationDataProcessWindowFunction())
-
 
 
             val busETADataStream = windowedBusLocationDataStream
                 .keyBy { it.busId }
                 .process(BusETACalculatingProcessFunction())
 
-            val busTrackingDataStream = busLocationWithMetadataStream
+            val busTrackingDataStream = busLocationDataWithMetadataStream
                 .map { it.toBusTrackingData() }
 
             val busUpdatesDataStream = busTrackingDataStream.keyBy {
@@ -169,7 +207,6 @@ class BusTrackerAndETACalculatorApp {
                     serializer = BusTrackingDataKafkaRecordSerializer(BUS_TRACKING_DATA_TOPIC)
                 )
             }
-
 
             val busUpdatesStreamSink = getKafkaSink {
                 KafkaSinkConfiguration(

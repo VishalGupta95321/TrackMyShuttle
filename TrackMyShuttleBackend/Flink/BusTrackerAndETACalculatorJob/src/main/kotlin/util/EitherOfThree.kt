@@ -1,15 +1,15 @@
 package util
 
 sealed class EitherOfThree<A, B, C> {
-    data class Left<A>(
+    data class BusStop<A>(
         val value : A,
     ): EitherOfThree<A, Nothing, Nothing>()
 
-    data class Middle<B>(
+    data class Bus<B>(
         val value : B,
     ): EitherOfThree<Nothing, B, Nothing>()
 
-    data class Right<C>(
+    data class Route<C>(
         val value: C,
     ): EitherOfThree<Nothing, Nothing, C>()
 

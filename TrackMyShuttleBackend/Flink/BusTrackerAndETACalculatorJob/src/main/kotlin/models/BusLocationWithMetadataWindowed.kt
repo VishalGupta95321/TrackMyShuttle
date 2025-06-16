@@ -1,8 +1,5 @@
 package models
 
-
-
-
 data class BusLocationWithMetadataWindowed(
     val busId: String,
     val busLocationMetadata: BusLocationWithMetadata,

@@ -273,7 +273,6 @@ fun mainn(){
     ).let {
         Route(
             "1",
-            "1",
             1,
             "S0",
             "S1",
@@ -289,7 +288,6 @@ fun mainn(){
         Coordinate("40.75797", "-73.934922")
     ).let {
         Route(
-            "1",
             "2",
             1,
             "S1",
@@ -313,7 +311,6 @@ fun mainn(){
         Coordinate("40.756152", "-73.936636")
     ).let {
         Route(
-            "1",
             "3",
             1,
             "S2",
@@ -331,7 +328,6 @@ fun mainn(){
         Coordinate("40.755127", "-73.937485")
     ).let {
         Route(
-            "1",
             "4",
             1,
             "S3",
@@ -348,7 +344,6 @@ fun mainn(){
         Coordinate("40.75265", "-73.93982")
     ).let {
         Route(
-            "1",
             "5",
             1,
             "S4",
@@ -379,28 +374,34 @@ fun mainn(){
     val busStops = listOf(
         BusStop(
             stopId = "S0",
-            coordinates = routeS0S1.coordinates.first()
+            coordinates = routeS0S1.coordinates.first(),
+            stopRadiusInMeters = 50.0
         ),
         BusStop(
             stopId = "S1",
-            coordinates = routeS0S1.coordinates.last()
+            coordinates = routeS0S1.coordinates.last(),
+            stopRadiusInMeters = 50.0
         ),
         BusStop(
             stopId = "S2",
-            coordinates = routeS1S2.coordinates.last()
+            coordinates = routeS1S2.coordinates.last(),
+            stopRadiusInMeters = 50.0
         ),
         BusStop(
             stopId = "S3",
-            coordinates =  routeS2S3.coordinates.last()
+            coordinates =  routeS2S3.coordinates.last(),
+            stopRadiusInMeters = 50.0
         ),
         BusStop(
             stopId = "S4",
-            coordinates =  routeS3S4.coordinates.last()
+            coordinates =  routeS3S4.coordinates.last(),
+            stopRadiusInMeters = 50.0
         ),
         //***
         BusStop(
             stopId = "S5",
-            coordinates =  routeS4S5.coordinates.last()
+            coordinates =  routeS4S5.coordinates.last(),
+            stopRadiusInMeters = 50.0
         )
     )
 
@@ -463,6 +464,7 @@ fun mainn(){
 private const val BUS_LOCATION_DATA_TOPIC = "BUS_LOCATION_DATA"
 private const val BUS_DATA_TOPIC = "BUS_DATA"
 private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
+private const val BUS_STOP_DATA_TOPIC = "BUS_STOP_DATA"
 
 
 /// Kafka Sink Topics
@@ -500,31 +502,39 @@ fun main(){
     val busData = BusData(
         busId = "1",
         routeType = RouteType.OutAndBack,
-        stops = listOf(
-            BusStop(
-                stopId = "S0",
-                coordinates = Coordinate("40.755997", "-73.940509")
-            ),
-            BusStop(
-                stopId = "S1",
-                coordinates = Coordinate("40.758702", "-73.93426")
-            ),
-            BusStop(
-                stopId = "S2",
-                coordinates = Coordinate("40.75797", "-73.934922")
-            ),
-            BusStop(
-                stopId = "S3",
-                coordinates = Coordinate("40.756152", "-73.936636")
-            ),
-            BusStop(
-                stopId = "S4",
-                coordinates = Coordinate("40.755127", "-73.937485")
-            ),
-            BusStop(
-                stopId = "S5",
-                coordinates = Coordinate("40.75265", "-73.93982")
-            )
+        stopIds = listOf("S0", "S1", "S2", "S3", "S4", "S5"),
+    )
+
+    val stopsData = listOf(
+        BusStop(
+            stopId = "S0",
+            coordinates = Coordinate("40.755997", "-73.940509"),
+            stopRadiusInMeters = 50.0
+        ),
+        BusStop(
+            stopId = "S1",
+            coordinates = Coordinate("40.758702", "-73.93426"),
+            stopRadiusInMeters = 50.0
+        ),
+        BusStop(
+            stopId = "S2",
+            coordinates = Coordinate("40.75797", "-73.934922"),
+            stopRadiusInMeters = 50.0
+        ),
+        BusStop(
+            stopId = "S3",
+            coordinates = Coordinate("40.756152", "-73.936636"),
+            stopRadiusInMeters = 50.0
+        ),
+        BusStop(
+            stopId = "S4",
+            coordinates = Coordinate("40.755127", "-73.937485"),
+            stopRadiusInMeters = 50.0
+        ),
+        BusStop(
+            stopId = "S5",
+            coordinates = Coordinate("40.75265", "-73.93982"),
+            stopRadiusInMeters = 50.0
         )
     )
 
@@ -563,7 +573,7 @@ fun main(){
         Coordinate("40.758702", "-73.93426")
     ).let {
         Route(
-            "1", "1", 1, "S0", "S1", coordinates = it,
+             "1", 1, "S0", "S1", coordinates = it,
             duration = (70L).seconds,
             distanceInMeters = "785.30"
         )
@@ -575,7 +585,7 @@ fun main(){
         Coordinate("40.75797", "-73.934922")
     ).let {
         Route(
-            "1", "2", 1, "S1", "S2", coordinates = it,
+             "2", 1, "S1", "S2", coordinates = it,
             duration = (8L).seconds,
             distanceInMeters = "98.67"
         )
@@ -594,7 +604,7 @@ fun main(){
         Coordinate("40.756152", "-73.936636")
     ).let {
         Route(
-            "1", "3", 1, "S2", "S3", coordinates = it,
+            "3", 1, "S2", "S3", coordinates = it,
             duration = (22).seconds,
             distanceInMeters = "249.11"
         )
@@ -607,7 +617,7 @@ fun main(){
         Coordinate("40.755127", "-73.937485")
     ).let {
         Route(
-            "1", "4", 1, "S3", "S4", coordinates = it,
+            "4", 1, "S3", "S4", coordinates = it,
             duration = (12L).seconds,
             distanceInMeters = "140.99"
         )
@@ -618,13 +628,13 @@ fun main(){
         Coordinate("40.75265", "-73.93982")
     ).let {
         Route(
-            "1", "5", 1, "S4", "S5", coordinates = it,
+             "5", 1, "S4", "S5", coordinates = it,
             duration = (30L).seconds,
             distanceInMeters = "338.44"
         )
     }
 
-    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates,busData.stops)
+    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates,stopsData)
 
     println(r)
 
@@ -632,14 +642,17 @@ fun main(){
 
 ////
 
-//    runBlocking {
-//        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
-//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
-//    }
+   //runBlocking {
+        stopsData.forEach { stop->
+           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
+        }
+        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
+        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
+  //  }
 
 
 
@@ -660,7 +673,6 @@ fun main(){
         }
 
     }
-
 }
 
 

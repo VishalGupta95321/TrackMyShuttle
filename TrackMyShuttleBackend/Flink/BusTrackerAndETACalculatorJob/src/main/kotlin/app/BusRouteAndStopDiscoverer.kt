@@ -115,10 +115,10 @@ class BusRouteAndStopDiscoverer {
         /// In case any point in the recent coordinates list reached or crossed on of the stop.
         recentCoordinates.forEach { coordinates ->
             val isCurrentPointIsWithinStop1Radius =
-                checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop1.second.coordinates)
+                checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop1.second.coordinates,currentStop1.second.stopRadiusInMeters)
 
             val isCurrentPointIsWithinStop2Radius =
-                checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop2.second.coordinates)
+                checkIfCurrentPointIsWithinBusStopRadius(coordinates, currentStop2.second.coordinates,currentStop2.second.stopRadiusInMeters)
 
             if (isCurrentPointIsWithinStop1Radius) {
                 println(" Bus Crossed the Stop =====================")
@@ -274,6 +274,7 @@ class BusRouteAndStopDiscoverer {
     fun checkIfCurrentPointIsWithinBusStopRadius(
         currentPoint: Coordinate,
         busStopPoint: Coordinate,
+        busStopRadiusInMeters: Double
     ): Boolean {
         val distanceFromStop =
             TurfMeasurement.distance(
@@ -281,7 +282,7 @@ class BusRouteAndStopDiscoverer {
                 busStopPoint.toPoint(),
                 TurfConstants.UNIT_METERS
             )
-        return distanceFromStop <= BUS_STOP_RADIUS_IN_METERS
+        return distanceFromStop <= busStopRadiusInMeters
     }
 
     /// Clearing the recent coord list if the first point in the list is within Stop radius.
@@ -293,7 +294,8 @@ class BusRouteAndStopDiscoverer {
             busStops.forEach { stop ->
                 val result = checkIfCurrentPointIsWithinBusStopRadius(
                     currentPoint = recentCoordinates.first(),
-                    busStopPoint = stop.coordinates
+                    busStopPoint = stop.coordinates,
+                    busStopRadiusInMeters = stop.stopRadiusInMeters
                 )
                 if (result) { return true }
             }
@@ -338,7 +340,6 @@ class BusRouteAndStopDiscoverer {
     companion object{
         private const val MAX_TIME_INTERVAL_BETWEEN_COORDINATES_IN_LIST_IN_SEC = 20L
         private const val MAX_TOTAL_DISTANCE_OF_COORDINATES_IN_LIST_IN_METERS = 100L
-        const val BUS_STOP_RADIUS_IN_METERS = 100L
         private const val MAX_GPS_ERROR_IN_METERS = 20L
         private const val INDEX_ZERO = 0
     }

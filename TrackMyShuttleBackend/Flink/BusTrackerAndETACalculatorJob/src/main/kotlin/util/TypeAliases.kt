@@ -1,10 +1,10 @@
 package util
 
 import models.BusData
-import models.BusLocationData
+import models.BusStop
 import models.Route
 
 typealias Index = Int
 typealias TimeStamp = Long
 typealias isReturning = Boolean
-typealias BusUnion = EitherOfThree<BusLocationData, BusData, Route>
+typealias CombinedStream = EitherOfThree<BusStop, BusData, Route>

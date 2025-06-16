@@ -8,6 +8,6 @@ import kotlin.time.Duration
 @Serializable
 data class BusData(
     val busId : String,
-    val routeType : RouteType,
-    val stops : List<BusStop>
+    val routeType : RouteType,  // TODO("Update Service")
+    val stopIds: List<String>,
 )

@@ -1,6 +1,5 @@
 package app
 
-import app.BusRouteAndStopDiscoverer.Companion.BUS_STOP_RADIUS_IN_METERS
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfMeasurement
@@ -29,6 +28,7 @@ data class FromStopDetails(
 data class CurrentRouteDetails(
     val busId: String,
     val routeId: String,
+    val destStopRadiusInMeters: Double,
     val coordinates: List<Coordinate>,
     val duration: Duration,
     val distanceInMeters: String,
@@ -75,17 +75,17 @@ class EtaCalculator {
 
         val nearestPointInLine = busDiscoverer.nearestPointOnLine(currentPos,currRoutePoints)
 
-        val remainingPoints = (listOf(nearestPointInLine.coordinate) + currRoutePoints.subList(
+        val remainingCoords = (listOf(nearestPointInLine.coordinate) + currRoutePoints.subList(
             nearestPointInLine.indexOfLastClosestPointInLineString+1,currRoutePoints.size
         )).map { it.toPoint() }
        //  if (remainingPoints.size < 2) return null
 
-        val remainingDistance = getLineLength(remainingPoints) - BUS_STOP_RADIUS_IN_METERS ///// version 2
+        val remainingDistance = getLineLength(remainingCoords) - currentRoute.destStopRadiusInMeters ///// version 2
         val expectedSpeed = getExpectedSpeed(currentRoute)
         if (expectedSpeed <= 0) return null
 
         val timeElapsedSeconds = getTimeElapsedSeconds(startTimeMillis, nowMillis)
-       // if (timeElapsedSeconds <= 0) return null
+       // if (timeElapsedSeconds <= 0) return null // uncomment it in case this fun throw error
 
         val actualDistance = TurfMeasurement.distance(startPoint, currentPos.toPoint(), "meters")
         val expectedDistance = expectedSpeed * timeElapsedSeconds

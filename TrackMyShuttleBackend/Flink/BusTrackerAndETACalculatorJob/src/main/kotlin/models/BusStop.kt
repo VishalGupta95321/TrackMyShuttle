@@ -7,6 +7,6 @@ import kotlin.time.Duration
 data class BusStop(
     val stopId: String,
     val coordinates: Coordinate,
-    val waitTime: Duration = Duration.ZERO,
-    //val stopRadiusInMeters: Double,   //// TODO Maybe do this and update the code accordingly
+    val waitTime: Duration = Duration.ZERO, // TODO("Update Service")
+    val stopRadiusInMeters: Double,  // TODO("Update Service")
 )

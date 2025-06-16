@@ -31,7 +31,7 @@ class CustomFallBackBoundedOutOfOrdernessWatermark(
     ) {
         currentMaxTimestamp = max(currentMaxTimestamp,eventTimeStamp)
         lastEmit = System.currentTimeMillis()
-        println(" DTAAAAAA =================== $event")
+        println(" DATA =================== $event")
     }
 
     override fun onPeriodicEmit(output: WatermarkOutput) {

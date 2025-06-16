@@ -28,6 +28,7 @@ class BusETACalculatingProcessFunction: KeyedProcessFunction<String, BusLocation
             routeId = currRoute.routeId,
             coordinates = currRoute.coordinates,
             duration = currRoute.duration,
+            destStopRadiusInMeters = element.busLocationMetadata.nextStop.stopRadiusInMeters,
             distanceInMeters = currRoute.distanceInMeters,
             routeType = element.busLocationMetadata.routeType,
             isReturning = element.busLocationMetadata.isReturning,
