@@ -2,33 +2,34 @@ package app
 
 import models.BusData
 import models.BusLocationData
+import models.RawBusStop
 import models.BusStop
 import models.EnrichedLocationData
 import models.Route
+import models.toBusStop
 import org.apache.flink.api.common.functions.OpenContext
 import org.apache.flink.api.common.state.ListState
-import org.apache.flink.streaming.api.functions.co.CoProcessFunction
 import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction
 import org.apache.flink.util.Collector
 import util.EitherOfThree
 import util.getListState
 
-class BusLocationEnrichingProcessFunction: KeyedCoProcessFunction<String,EitherOfThree<BusStop, BusData, Route>, BusLocationData, EnrichedLocationData>() {
+class BusLocationEnrichingProcessFunction: KeyedCoProcessFunction<String,EitherOfThree<RawBusStop, BusData, Route>, BusLocationData, EnrichedLocationData>() {
 
-    private lateinit var busStops: ListState<BusStop>
+    private lateinit var busStops: ListState<RawBusStop>
     private lateinit var busRoutes: ListState<Route>
     private lateinit var buses: ListState<BusData>
 
     override fun open(openContext: OpenContext?) {
         runtimeContext.apply {
-            busStops = getListState<BusStop>(BUS_STOP_STATE)
+            busStops = getListState<RawBusStop>(BUS_STOP_STATE)
             buses = getListState<BusData>(BUSES_STATE)
             busRoutes = getListState<Route>(ROUTES_STATE)
         }
     }
     override fun processElement1(
-        element: EitherOfThree<BusStop, BusData, Route>,
-        context: KeyedCoProcessFunction<String, EitherOfThree<BusStop, BusData, Route>, BusLocationData, EnrichedLocationData>.Context,
+        element: EitherOfThree<RawBusStop, BusData, Route>,
+        context: KeyedCoProcessFunction<String, EitherOfThree<RawBusStop, BusData, Route>, BusLocationData, EnrichedLocationData>.Context,
         out: Collector<EnrichedLocationData>
     ) {
         when (element) {
@@ -40,7 +41,7 @@ class BusLocationEnrichingProcessFunction: KeyedCoProcessFunction<String,EitherO
 
     override fun processElement2(
         element: BusLocationData,
-        context: KeyedCoProcessFunction<String,EitherOfThree<BusStop, BusData, Route>, BusLocationData, EnrichedLocationData>.Context,
+        context: KeyedCoProcessFunction<String,EitherOfThree<RawBusStop, BusData, Route>, BusLocationData, EnrichedLocationData>.Context,
         out: Collector<EnrichedLocationData>
     ) {
         val busId = element.busId
@@ -52,8 +53,9 @@ class BusLocationEnrichingProcessFunction: KeyedCoProcessFunction<String,EitherO
 
         val busStopsData = mutableListOf<BusStop>()
 
-        busData.stopIds.forEach { stopId ->
-            busStopsData.add(busStopsList.find { it.stopId == stopId } ?: return)
+        busData.stopIds.forEach { (stopId,waitTime) ->
+            val stop = busStopsList.find { it.stopId == stopId }  ?: return
+            busStopsData.add(stop.toBusStop(waitTime))
         }
 
         val busRoutesData = mutableListOf<Route>()

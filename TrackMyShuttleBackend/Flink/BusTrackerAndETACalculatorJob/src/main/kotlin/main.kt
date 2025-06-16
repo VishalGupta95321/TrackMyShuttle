@@ -1,17 +1,16 @@
 import app.*
-import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfMeasurement
-import com.mapbox.turf.TurfMisc
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import models.BusData
 import models.BusLocationData
-import models.BusStop
+import models.RawBusStop
 import models.Coordinate
 import models.Route
 import models.toPoint
+import models.toBusStop
 import util.RouteType
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -159,7 +158,7 @@ import java.util.concurrent.TimeUnit
 
 fun generateRecentCoordinatesFromSegment(
     segment: List<Coordinate>,
-    busStops: List<BusStop>,
+    busStops: List<RawBusStop>,
     startTimestampMillis: Long = System.currentTimeMillis(),
     maxTimeGapSeconds: Long = 15,
     minTotalDistanceMeters: Double = 100.0,
@@ -372,38 +371,39 @@ fun mainn(){
 //    }
 
     val busStops = listOf(
-        BusStop(
+        RawBusStop(
             stopId = "S0",
             coordinates = routeS0S1.coordinates.first(),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S1",
             coordinates = routeS0S1.coordinates.last(),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S2",
             coordinates = routeS1S2.coordinates.last(),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S3",
             coordinates =  routeS2S3.coordinates.last(),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S4",
             coordinates =  routeS3S4.coordinates.last(),
             stopRadiusInMeters = 50.0
         ),
         //***
-        BusStop(
+        RawBusStop(
             stopId = "S5",
             coordinates =  routeS4S5.coordinates.last(),
             stopRadiusInMeters = 50.0
         )
     )
+    val bwt = busStops.map { it.toBusStop(Duration.ZERO) }
 
     var r  =  generateRecentCoordinatesFromSegment(routeS4S5.coordinates.reversed(),busStops).map { it.second }
     println(r)
@@ -412,7 +412,7 @@ fun mainn(){
     val result = BusRouteAndStopDiscoverer().findNextLastStopAndIfIsReturningFromScratch(
         RouteType.OutAndBack,  //// it cant be loop because in the route list there is no route between first and last stop.
         listOf(routeS0S1, routeS1S2, routeS2S3, routeS3S4, routeS4S5),
-        busStops,
+        bwt,
        r
     )
     println(formatCoordinatesForExport( r,"#FFFF00"))
@@ -502,36 +502,43 @@ fun main(){
     val busData = BusData(
         busId = "1",
         routeType = RouteType.OutAndBack,
-        stopIds = listOf("S0", "S1", "S2", "S3", "S4", "S5"),
+        stopIds = listOf<Pair<String, Duration>>(
+            "S0" to Duration.ZERO,
+            "S1" to Duration.ZERO,
+            "S2" to Duration.ZERO,
+            "S3" to Duration.ZERO,
+            "S4" to Duration.ZERO,
+            "S5" to Duration.ZERO,
+        )
     )
 
     val stopsData = listOf(
-        BusStop(
+        RawBusStop(
             stopId = "S0",
             coordinates = Coordinate("40.755997", "-73.940509"),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S1",
             coordinates = Coordinate("40.758702", "-73.93426"),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S2",
             coordinates = Coordinate("40.75797", "-73.934922"),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S3",
             coordinates = Coordinate("40.756152", "-73.936636"),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S4",
             coordinates = Coordinate("40.755127", "-73.937485"),
             stopRadiusInMeters = 50.0
         ),
-        BusStop(
+        RawBusStop(
             stopId = "S5",
             coordinates = Coordinate("40.75265", "-73.93982"),
             stopRadiusInMeters = 50.0
@@ -634,7 +641,7 @@ fun main(){
         )
     }
 
-    var r  =  generateRecentCoordinatesFromSegment(routeS4S5.coordinates.reversed(),stopsData)
+    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates,stopsData)
 
     println(r)
 
@@ -643,15 +650,15 @@ fun main(){
 ////
 
    //runBlocking {
-        stopsData.forEach { stop->
-           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
-        }
-        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
+//        stopsData.forEach { stop->
+//           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
+//        }
+//        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
   //  }
 
 

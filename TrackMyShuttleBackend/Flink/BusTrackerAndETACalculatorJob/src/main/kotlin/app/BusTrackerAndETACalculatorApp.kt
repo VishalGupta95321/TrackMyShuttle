@@ -2,7 +2,7 @@ package app
 
 import models.BusLocationData
 import models.BusData
-import models.BusStop
+import models.RawBusStop
 import models.KafkaSinkConfiguration
 import models.KafkaSourceConfiguration
 import models.Route
@@ -128,14 +128,14 @@ class BusTrackerAndETACalculatorApp {
                         deserializer = CustomBusStopDataDeserializer()
                     )
                 },
-                WatermarkStrategy.noWatermarks<BusStop>().withIdleness(Duration.ofSeconds(1L)),
+                WatermarkStrategy.noWatermarks<RawBusStop>().withIdleness(Duration.ofSeconds(1L)),
                 "BusStopsDataInputStream"
 
             ) /// TODO Here
 
 
 
-            val typeInfo = object : TypeHint<EitherOfThree<BusStop, BusData, Route>>(){}.typeInfo
+            val typeInfo = object : TypeHint<EitherOfThree<RawBusStop, BusData, Route>>(){}.typeInfo
 
 //            val locationDataStream = busLocationDataInputStream               ///// DELETE
 //                .map { EitherOfThree.Left<BusLocationData>(it) as BusUnion }
@@ -145,7 +145,7 @@ class BusTrackerAndETACalculatorApp {
 
             /// Left
             val busStopDataStream = busStopsDataInputStream
-                .map { EitherOfThree.BusStop<BusStop>(it) as CombinedStream }
+                .map { EitherOfThree.BusStop<RawBusStop>(it) as CombinedStream }
                 .returns(typeInfo)
 
             /// Middle

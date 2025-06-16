@@ -1,10 +1,13 @@
 package util
 
 import models.BusData
-import models.BusStop
+import models.RawBusStop
 import models.Route
+import kotlin.time.Duration
 
 typealias Index = Int
 typealias TimeStamp = Long
 typealias isReturning = Boolean
-typealias CombinedStream = EitherOfThree<BusStop, BusData, Route>
+typealias WaitTime = Duration
+typealias StopId = String
+typealias CombinedStream = EitherOfThree<RawBusStop, BusData, Route>

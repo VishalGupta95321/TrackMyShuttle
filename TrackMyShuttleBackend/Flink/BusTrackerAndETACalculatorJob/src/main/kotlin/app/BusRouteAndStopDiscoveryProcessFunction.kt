@@ -1,5 +1,8 @@
 package app
 
+import com.mapbox.geojson.Point
+import com.mapbox.turf.TurfConstants
+import com.mapbox.turf.TurfMeasurement
 import models.*
 import org.apache.flink.api.common.functions.OpenContext
 import org.apache.flink.api.common.state.ListState
@@ -10,6 +13,12 @@ import util.RouteType
 import util.TimeStamp
 import util.getListState
 import util.getValueState
+
+
+data class PointWithRouteId(
+    val point: Point,
+    val routeId: String,
+)
 
 /// It finds out in which DIRECTION bus is heading FROM which STOP - TO which STOP, on which ROUTE and if it reached its DESTINATION.
 class BusRouteAndStopDiscoveryProcessFunction :
@@ -23,7 +32,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
     private lateinit var nextBusStop: ValueState<BusStop>
     private lateinit var currentStop: ValueState<BusStop>
     private lateinit var isReturning: ValueState<Boolean>
-
+    private lateinit var lastPoint: ValueState<PointWithRouteId>
 
     override fun open(openContext: OpenContext?) {
 
@@ -35,6 +44,7 @@ class BusRouteAndStopDiscoveryProcessFunction :
             nextBusStop = getValueState<BusStop>(NEXT_BUS_STOP)
             currentStop = getValueState<BusStop>(CURRENT_STOP)
             isReturning = getValueState<Boolean>(IS_RETURNING)
+            lastPoint = getValueState<PointWithRouteId>(LAST_POINT_STATE)
         }
     }
 
@@ -63,24 +73,81 @@ class BusRouteAndStopDiscoveryProcessFunction :
                 routes = busRoutes,
                 busLocation = element.locationData,
             ) { point, currentRoute ->
-                out.collect(
-                    BusLocationWithMetadata(
-                        busId = context.currentKey,
-                        currentRoute = currentRoute,
-                        routeType = busRouteType,
-                        location = TimeStampedCoordinate(
-                            timestamp = element.locationData.timestamp,
-                            coordinate = point
-                        ),
-                        isReturning = isReturning.value(),
-                        currentStop = currentStop.value(),
-                        nextStop = nextBusStop.value(),
-                        lastPassedStop = lastPassedBusStop.value(),
+
+                if (lastPoint.value() == null) {
+                    println("   LAST VALUE WAS NULL =========================================================== ")
+                    lastPoint.update(PointWithRouteId(point.toPoint(),currentRoute.routeId))
+                }
+
+                val isInDifferentDirection = checkIfBusIsInSameDirectionInSameRoute(
+                    lastPoint = lastPoint.value(),
+                    currentPoint = PointWithRouteId(point.toPoint(),currentRoute.routeId),
+                    nextStopPoint = nextBusStop.value().coordinates.toPoint()
+                ) { point ->
+                    point?.let { lastPoint.update(point) } ?: lastPoint.clear()
+                }
+
+                if (!isInDifferentDirection) {
+                    println("   FALSE  ======================================================================= ")
+                    out.collect(
+                        BusLocationWithMetadata(
+                            busId = context.currentKey,
+                            currentRoute = currentRoute,
+                            routeType = busRouteType,
+                            location = TimeStampedCoordinate(
+                                timestamp = element.locationData.timestamp,
+                                coordinate = point
+                            ),
+                            isReturning = isReturning.value(),
+                            currentStop = currentStop.value(),
+                            nextStop = nextBusStop.value(),
+                            lastPassedStop = lastPassedBusStop.value(),
+                        )
                     )
-                )
+                } else {
+                    println(" TRUE ==============")
+                    cleaMetaData()
+                }
             }
     }
 
+    /* There could be also the rare case that bus went offline and came online on the same route but different
+       direction */
+    /* It compares the last point and current point distance to the next stop. If current point distance to busStop is less than last point then
+    its on the same direction and update the last point to current point and if the distance is more than last point then not
+    in same direction and clear the last point and clear the Metadata. So it have to calculate the fresh metadata next time. */
+    private fun checkIfBusIsInSameDirectionInSameRoute(
+        lastPoint: PointWithRouteId?,
+        currentPoint: PointWithRouteId,
+        nextStopPoint: Point,
+        updateLastPoint: (point: PointWithRouteId?) -> Unit
+    ): Boolean{
+
+        lastPoint ?: return false
+
+        if (currentPoint.routeId != lastPoint.routeId){
+            updateLastPoint(null)
+            return false
+        }
+
+        val distanceBetweenPoints = TurfMeasurement.distance(lastPoint.point,currentPoint.point, TurfConstants.UNIT_METERS)
+        if (distanceBetweenPoints < 10.0) {
+            println("   NOT 10 METER YET ======================================== = = = = = = = = == = = ")
+            return false
+        }
+
+        val distanceToNextFromCurrPoint = TurfMeasurement.distance(nextStopPoint,currentPoint.point)
+        val distanceToNextFromLastPoint = TurfMeasurement.distance(lastPoint.point,currentPoint.point)
+
+        return if (distanceToNextFromCurrPoint < distanceToNextFromLastPoint) {
+            updateLastPoint(currentPoint)
+            true
+        } else {
+            updateLastPoint(null)
+            false
+        }
+
+    }
 
     private fun getPointInRouteFromAvailableRoutesAndCollectAndUpdateMetadata(
         routes: List<Route>,
@@ -101,10 +168,6 @@ class BusRouteAndStopDiscoveryProcessFunction :
             /* In case bus was not running on the available routes, maybe it is running on some other route
              between the same set of stops, but we don't have that route saved yet. Later this can be solved by calling
              MapBox directions Api but for NOW let's assume its on another route between different set of stops.*/
-
-            /* There could be also the case that bus went offline and came online on the same route but different
-            direction, in that case it will reach the wrong stop and solution of that check line no. 148*/
-
             pointInRoute ?: busDiscovery.getPointInRouteFromScratch(
                 busLocation.coordinate, routes
             ).let { pointInRoute ->
@@ -217,5 +280,6 @@ class BusRouteAndStopDiscoveryProcessFunction :
         private const val NEXT_BUS_STOP = "NEXT_BUS_STOP"
         private const val CURRENT_STOP = "CURRENT_STOP"
         private const val IS_RETURNING = "IS_RETURNING"
+        private const val LAST_POINT_STATE = "LAST_POINT_STATE"
     }
 }
