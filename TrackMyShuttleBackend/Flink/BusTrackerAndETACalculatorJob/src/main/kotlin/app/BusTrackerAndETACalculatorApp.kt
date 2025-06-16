@@ -166,7 +166,7 @@ class BusTrackerAndETACalculatorApp {
             val enrichedBusLocationStream = combinedDataStream
                 .connect<BusLocationData>(locationDataStream)
                 .keyBy({"1"},{"1"})   //// changed //// It works but not really scalable I had to use key by because I cant use keyed state, and operator state stays in heap.
-                /// For now its working same as Broadcast state kind of, I didn't use broadcast state because it also stays in heap. /// Will find out the solution later but for now its working. FIXME
+                /// For now its working same as Broadcast state kind of, I didn't use broadcast state because it also stays in heap. /// Will find out the solution later but for now its working. FIXME Maybe Use Broadcast state but it will need more memory
                 .process(BusLocationEnrichingProcessFunction())
                 .setParallelism(1)
 

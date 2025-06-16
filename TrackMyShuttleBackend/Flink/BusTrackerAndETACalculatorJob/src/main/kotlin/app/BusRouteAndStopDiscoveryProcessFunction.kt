@@ -101,11 +101,15 @@ class BusRouteAndStopDiscoveryProcessFunction :
             /* In case bus was not running on the available routes, maybe it is running on some other route
              between the same set of stops, but we don't have that route saved yet. Later this can be solved by calling
              MapBox directions Api but for NOW let's assume its on another route between different set of stops.*/
+
+            /* There could be also the case that bus went offline and came online on the same route but different
+            direction, in that case it will reach the wrong stop and solution of that check line no. 148*/
+
             pointInRoute ?: busDiscovery.getPointInRouteFromScratch(
                 busLocation.coordinate, routes
             ).let { pointInRoute ->
                 val isRunningBetweenDiffPoints = pointInRoute != null
-                /* In case bus is running on different set of stops, we are clearing all the stale metadata so
+                /* In case bus is running on different set of stops, different route, we are clearing all the stale metadata so
                  it had to calculate fresh again. */
                 if (isRunningBetweenDiffPoints) cleaMetaData()
                 /* TODO("What if bus is not running between any set of Stops ?") */

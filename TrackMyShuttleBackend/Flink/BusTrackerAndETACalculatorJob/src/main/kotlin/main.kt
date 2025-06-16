@@ -634,7 +634,7 @@ fun main(){
         )
     }
 
-    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates,stopsData)
+    var r  =  generateRecentCoordinatesFromSegment(routeS4S5.coordinates.reversed(),stopsData)
 
     println(r)
 
