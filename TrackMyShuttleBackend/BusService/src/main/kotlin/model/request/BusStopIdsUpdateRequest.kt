@@ -7,7 +7,7 @@ import util.CustomUpdateTypeSerializer
 @Serializable()
 data class BusStopIdsUpdateRequest(
     val busId: String,
-    val stopIds: List<String>,
+    val stopIds: List<StopIdsWIthWaitTimeDto>,
     val updateType: UpdateType
 ){
 

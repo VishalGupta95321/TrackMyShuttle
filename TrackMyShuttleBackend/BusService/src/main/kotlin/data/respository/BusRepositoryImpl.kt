@@ -9,6 +9,7 @@ import data.model.BusStatus
 import data.model.BusStatus.Companion.fromValue
 import data.model.DynamoDbTransactWriteItem
 import data.model.DynamoDbTransactWriteItem.Companion.TransactionUpdateItem
+import data.model.StopIdsWithWaitTime
 import data.model.toBusEntity
 import data.source.DynamoDbDataSource
 import data.util.BasicBusRepoResult
@@ -39,10 +40,8 @@ class BusRepositoryImpl(
     }
 
     override suspend fun registerBus(bus: Bus): BusRepoResult<String> {
-        val partitionKey = extractPartitionKeyFromBusId(bus.busId)
-            ?: return GetBack.Error(BusRepoErrors.PartitionKeyLimitExceeded)
 
-        val result = dynamoDbSource.putItem(item = bus.toBusEntity(partitionKey.toString()))
+        val result = dynamoDbSource.putItem(item = bus.toBusEntity())
         return when (result) {
             is GetBack.Error -> result.toBusRepoErrors()
             is GetBack.Success -> GetBack.Success(bus.busId) /// in the controller return the bus id after successful registration.
@@ -53,7 +52,6 @@ class BusRepositoryImpl(
         busId: String,
         bus: BasicBusDetails
     ): BusRepoResult<BasicBusDetails> {
-        /// FIXME()
         val result = dynamoDbSource.updateItemAttr(
             keyVal = busId,
             update = BusEntityAttrUpdate.UpdateBasicBusDetails(value = bus)
@@ -126,7 +124,7 @@ class BusRepositoryImpl(
 
     override suspend fun updateStopIds(
         busId: String,
-        stopIds: List<String>,
+        stopIds:List<StopIdsWithWaitTime>,
         updateAction: StopIdsUpdateAction
     ): BasicBusRepoResult {
         val result = dynamoDbSource.updateItemAttr(
@@ -148,16 +146,6 @@ class BusRepositoryImpl(
             is DynamoDbErrors.ItemDoesNotExists -> GetBack.Error(BusRepoErrors.BusDoesNotExist)
             is DynamoDbErrors.ItemAlreadyExists ->  GetBack.Error(BusRepoErrors.BusAlreadyExists)
             else ->  GetBack.Error(BusRepoErrors.SomethingWentWrong)
-        }
-    }
-
-    private fun extractPartitionKeyFromBusId(
-        busId: String
-    ): Int? {
-        busId.takeLast(4).let {
-           return it.toIntOrNull()?.let {
-               if(it <= 1000) abs(it) else null
-           }
         }
     }
 }

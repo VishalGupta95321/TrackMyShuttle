@@ -1,7 +1,9 @@
 package data.model
 
+import data.util.CustomBusStatusSerializer
 import kotlinx.serialization.Serializable
 
+@Serializable(with = CustomBusStatusSerializer::class)
 sealed class BusStatus(
     val value: Int
 ){

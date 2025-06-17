@@ -15,6 +15,7 @@ data class BusStopEntity(
     val stopName: String,
     val address: String,
     val location: Location,
+    val radiusInMeters: Double,
     val busIds: List<String> = listOf(),
 ): DynamoDbModel{
     fun toBusStop() = BusStop(
@@ -22,6 +23,7 @@ data class BusStopEntity(
         stopName = stopName,
         address = address,
         location = location,
+        radiusInMeters = radiusInMeters,
     )
 }
 
@@ -31,4 +33,5 @@ object BusStopEntityAttributes {
     const val ADDRESS = "address"
     const val LOCATION = "location"
     const val BUS_IDS = "busIds"
+    const val RADIUS_IN_METERS = "radiusInMeters"
 }

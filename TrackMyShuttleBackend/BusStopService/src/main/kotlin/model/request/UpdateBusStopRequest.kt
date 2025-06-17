@@ -10,6 +10,7 @@ data class UpdateBusStopRequest(
     val stopName: String,
     val address: String,
     val location: LocationDto,
+    val radiusInMeters: Double,
 ){
     fun toBusStop(stopId: String): BusStop {
         return BusStop(
@@ -17,6 +18,7 @@ data class UpdateBusStopRequest(
             stopName = stopName,
             address = address,
             location = location.toLocation(),
+            radiusInMeters = radiusInMeters,
         )
     }
 }

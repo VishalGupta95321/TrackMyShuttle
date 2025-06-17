@@ -1,13 +1,14 @@
 package model.request
 
 import kotlinx.serialization.Serializable
+import model.response.StopIdsWithWaitTime
 import util.CustomUpdateTypeSerializer
 
 
 @Serializable
 data class UpdateBusIdsInStopsRequest(
     val busId: String,
-    val stopIds: List<String>,
+    val stopIds: List<StopIdsWithWaitTime>,
     val updateType: UpdateType
 ){
     companion object {

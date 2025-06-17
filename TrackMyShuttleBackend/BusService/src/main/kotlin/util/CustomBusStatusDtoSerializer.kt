@@ -14,7 +14,6 @@ object CustomBusStatusDtoSerializer : KSerializer<BusStatusDto> {
     override val descriptor: SerialDescriptor
         get() = PrimitiveSerialDescriptor("BusStatusDto", PrimitiveKind.STRING)
 
-    @Throws(SerializationException::class)
     override fun serialize(
         encoder: Encoder,
         value: BusStatusDto
@@ -28,7 +27,6 @@ object CustomBusStatusDtoSerializer : KSerializer<BusStatusDto> {
             }
         )
     }
-    @Throws(SerializationException::class)
     override fun deserialize(decoder: Decoder): BusStatusDto {
         return when(decoder.decodeString()){
             "Active" -> BusStatusDto.Active

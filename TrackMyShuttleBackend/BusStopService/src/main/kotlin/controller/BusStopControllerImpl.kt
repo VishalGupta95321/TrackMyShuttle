@@ -117,6 +117,7 @@ class BusStopControllerImpl(
                 stopName = request.stopName,
                 address = request.address,
                 location = request.location,
+                radiusInMeters = request.radiusInMeters,
             ))
             is GetBack.Error -> result.toBusStopControllerErrors()
         }
@@ -134,7 +135,7 @@ class BusStopControllerImpl(
         }
         val result = busStopRepository.updateBusIdsInStops(
             request.busId,
-            request.stopIds,
+            request.stopIds.map { it.stopId },
             updateAction
         )
         return when(result) {

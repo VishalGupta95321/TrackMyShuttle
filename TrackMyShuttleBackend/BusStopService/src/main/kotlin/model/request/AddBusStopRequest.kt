@@ -12,12 +12,14 @@ data class AddBusStopRequest(
     val stopName: String,
     val address: String,
     val location: LocationDto,
+    val radiusInMeters: Double,
 ){
     fun toBusStop(): BusStop = BusStop(
         stopId = stopId,
         stopName = stopName,
         address = address,
         location = location.toLocation(),
+        radiusInMeters = radiusInMeters,
     )
 }
 

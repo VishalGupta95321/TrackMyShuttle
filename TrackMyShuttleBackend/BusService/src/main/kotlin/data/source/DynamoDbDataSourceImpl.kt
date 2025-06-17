@@ -8,6 +8,7 @@ import aws.sdk.kotlin.services.dynamodb.waiters.waitUntilTableExists
 import aws.smithy.kotlin.runtime.ExperimentalApi
 import data.db_converters.BusStatusValueConverter
 import data.db_converters.DbItemConverter
+import data.db_converters.StopIdsWithWaitTimeValueConverter
 import data.entity.*
 import data.exceptions.DynamoDbErrors
 import data.exceptions.NoPartitionKeyFound
@@ -349,7 +350,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
 
                     is UpdateStopIds -> convertToAttrValUpdate(
                         BusEntityAttributes.STOP_IDS,
-                        AttributeValue.Ss(update.value),
+                        StopIdsWithWaitTimeValueConverter.convertTo(update.value),
                         update.action
                     )
 

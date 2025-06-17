@@ -89,7 +89,7 @@ class BusControllerImpl(
         }
         val result = busRepository.updateStopIds(
             busId = request.busId,
-            stopIds = request.stopIds,
+            stopIds = request.stopIds.map { it.toStopIdsWithWaitTime() },
             updateAction = updateAction
         )
         return when(result) {
@@ -124,7 +124,6 @@ class BusControllerImpl(
         return when(message) {
             is BusRepoErrors.BusDoesNotExist -> BusControllerResponse.Error(BusControllerExceptions.ItemNotFound)
             is BusRepoErrors.BusAlreadyExists -> BusControllerResponse.Error(BusControllerExceptions.ItemAlreadyExists)
-            is BusRepoErrors.PartitionKeyLimitExceeded -> BusControllerResponse.Error(BusControllerExceptions.RegistrationError)
             else ->  BusControllerResponse.Error(BusControllerExceptions.SomethingWentWrong)
         }
     }

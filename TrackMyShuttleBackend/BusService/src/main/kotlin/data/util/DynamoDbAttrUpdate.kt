@@ -2,6 +2,7 @@ package data.util
 
 import aws.sdk.kotlin.services.dynamodb.model.AttributeAction
 import data.model.BasicBusDetails
+import data.model.StopIdsWithWaitTime
 
 interface DynamoDbAttrUpdate
 
@@ -19,7 +20,7 @@ sealed class BusEntityAttrUpdate(
 
     data class UpdateStopIds(
         val keyVal: String,
-        val value: List<String>,
+        val value: List<StopIdsWithWaitTime>,
         private val updateAction: StopIdsUpdateAction
     ) : BusEntityAttrUpdate(updateAction.action) {
         companion object {

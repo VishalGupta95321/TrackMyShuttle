@@ -6,6 +6,8 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import model.request.BusStopIdsUpdateRequest
 import model.request.BusStopIdsUpdateRequest.Companion.UpdateType
+import model.request.StopIdsWIthWaitTimeDto
+import kotlin.time.Duration
 
 
 //import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
@@ -388,7 +390,7 @@ fun main(){
 
     val a = json.encodeToString(BusStopIdsUpdateRequest(
         "ddas",
-        listOf("qwddw"),
+        listOf(StopIdsWIthWaitTimeDto("eddeed", Duration.ZERO)),
         UpdateType.Add
     ))
 

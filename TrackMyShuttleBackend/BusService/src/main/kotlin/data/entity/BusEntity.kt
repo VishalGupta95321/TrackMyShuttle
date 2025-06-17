@@ -3,6 +3,8 @@ package data.entity
 import aws.sdk.kotlin.hll.dynamodbmapper.DynamoDbPartitionKey
 import data.model.Bus
 import data.model.BusStatus
+import data.model.StopIdsWithWaitTime
+import data.util.RouteType
 import data.util.TableName
 import kotlinx.serialization.Serializable
 
@@ -12,11 +14,11 @@ private const val TABLE_NAME = "BUS_TABLE"
 data class BusEntity(
     @DynamoDbPartitionKey
     val busId: String,
-    val partitionKey: String,
     val driverName: String,
     val activeHours: String,
     val activeDays: String,
-    val stopIds: List<String> = listOf(),
+    val stopIds: List<StopIdsWithWaitTime> = listOf(), /// Edit
+    val routeType: RouteType,
     val busStatus: BusStatus?,
     val currentStop: String?,
     val nextStop: String?,
@@ -26,6 +28,7 @@ data class BusEntity(
         driverName = driverName,
         activeHours = activeHours,
         activeDays = activeDays,
+        routeType = routeType,
         busStatus = busStatus,
         nextStop = nextStop,
         currentStop = currentStop,
@@ -35,7 +38,6 @@ data class BusEntity(
 
 object BusEntityAttributes {
     const val BUS_ID = "busId"
-    const val PARTITION_KEY = "partitionKey"
     const val DRIVER_NAME = "driverName"
     const val ACTIVE_HOURS = "activeHours"
     const val ACTIVE_DAYS = "activeDays"
@@ -43,4 +45,5 @@ object BusEntityAttributes {
     const val STOP_IDS = "stopIds"
     const val CURRENT_STOP = "currentStop"
     const val NEXT_STOP = "nextStop"
+    const val ROUTE_TYPE = "routeType"
 }

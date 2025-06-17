@@ -19,6 +19,7 @@ class BusStopItemConverter : DbItemConverter<BusStopEntity> {
             BusStopEntityAttributes.STOP_ID to AttributeValue.S(obj.stopId),
             BusStopEntityAttributes.STOP_NAME to AttributeValue.S(obj.stopName),
             BusStopEntityAttributes.ADDRESS to AttributeValue.S(obj.address),
+            BusStopEntityAttributes.RADIUS_IN_METERS to AttributeValue.S(obj.radiusInMeters.toString()),
             BusStopEntityAttributes.LOCATION to LocationValueConverter.convertTo(obj.location),
             BusStopEntityAttributes.BUS_IDS to if(obj.busIds.isNotEmpty()) AttributeValue.Ss(obj.busIds) else AttributeValue.Ss(listOf(PLACEHOLDER_BUS_ID_FOR_BUS_STOP)),
             )
@@ -32,6 +33,7 @@ class BusStopItemConverter : DbItemConverter<BusStopEntity> {
             stopId = attrValues[BusStopEntityAttributes.STOP_ID]?.asS() ?: throw IllegalArgumentException("Missing stopId"),
             stopName = attrValues[BusStopEntityAttributes.STOP_NAME]?.asS() ?: "",
             address = attrValues[BusStopEntityAttributes.ADDRESS]?.asS() ?: "",
+            radiusInMeters = attrValues[BusStopEntityAttributes.RADIUS_IN_METERS]?.asS()?.toDouble() ?: 0.0,
             location = attrValues[BusStopEntityAttributes.LOCATION]?.let { LocationValueConverter.convertFrom(it)} ?: throw IllegalArgumentException("Missing location"),
             busIds = attrValues[BusStopEntityAttributes.BUS_IDS]?.asSsOrNull()?.minus(PLACEHOLDER_BUS_ID_FOR_BUS_STOP)  ?: listOf(),
 

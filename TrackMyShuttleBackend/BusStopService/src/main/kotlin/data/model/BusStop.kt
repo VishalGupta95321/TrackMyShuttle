@@ -7,6 +7,7 @@ data class BusStop(
     val stopName: String,
     val address: String,
     val location: Location,
+    val radiusInMeters: Double
 )
 
 fun BusStop.toBusStopEntity(): BusStopEntity {
@@ -15,5 +16,6 @@ fun BusStop.toBusStopEntity(): BusStopEntity {
         stopName = stopName,
         address = address,
         location = location,
+        radiusInMeters = radiusInMeters
     )
 }

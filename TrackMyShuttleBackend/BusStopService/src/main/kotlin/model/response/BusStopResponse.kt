@@ -12,6 +12,7 @@ data class BusStopDto(
     val stopName: String,
     val address: String,
     val location: LocationDto,
+    val radiusInMeters: Double
 ){
 
     fun toBusStop(): BusStop = BusStop(
@@ -19,6 +20,7 @@ data class BusStopDto(
         stopName = stopName,
         address = address,
         location = location.toLocation(),
+        radiusInMeters = radiusInMeters
     )
     companion object {
         fun fromBusStop(busStop: BusStop): BusStopDto {
@@ -26,7 +28,8 @@ data class BusStopDto(
                 stopId = busStop.stopId,
                 stopName = busStop.stopName,
                 address = busStop.address,
-                location = fromLocation(busStop.location)
+                location = fromLocation(busStop.location),
+                radiusInMeters = busStop.radiusInMeters
             )
         }
     }
