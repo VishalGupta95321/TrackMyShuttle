@@ -30,10 +30,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
 
     private var currentTableName: String
     private var primaryKey: String
-    //private val itemConverter = itemConverter as DbItemConverter<T>
 
-    // if the item is not available then its just returning null data TODO
-    // if item is null then error
     override suspend fun getItem(key: String): DynamoDbResult<T> {
         val itemKey = convertToItemKey(key)
         val getRequest = GetItemRequest {
@@ -91,7 +88,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel,F : DynamoDbModel>(
         }
     }
 
-    // I tried With one unknown key thought it will create infinite loop but did not
     private suspend fun processGetItemBatchRequest(
         batchRequest: BatchGetItemRequest,
     ): List<T> {

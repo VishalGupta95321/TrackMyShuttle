@@ -1,7 +1,7 @@
 package data.util
 
-import data.exceptions.RouteRepoErrors
 import data.exceptions.DynamoDbErrors
+import data.exceptions.RouteRepoErrors
 
 
 typealias GetBackBasic  = GetBack<Nothing, Nothing>

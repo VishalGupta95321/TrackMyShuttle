@@ -1,13 +1,16 @@
+
 import aws.sdk.kotlin.hll.codegen.rendering.Visibility
 import aws.sdk.kotlin.hll.dynamodbmapper.codegen.annotations.DestinationPackage
 import aws.smithy.kotlin.runtime.ExperimentalApi
 
 val koinVersion: String by project
 val awsSdkVersion: String by project
+val ktorVersion: String by project
 
 
 plugins {
     kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
     id("aws.sdk.kotlin.hll.dynamodbmapper.schema.generator") version "1.3.76-beta"
 }
 
@@ -24,10 +27,10 @@ dynamoDbMapper {
     visibility = Visibility.INTERNAL
 }
 
+
 dependencies {
+    implementation("io.ktor:ktor-client-android:3.1.3")
     testImplementation(kotlin("test"))
-    // Serialization
-    implementation("com.google.code.gson:gson:2.11.0")
 
     // DynamoDb
     implementation("aws.sdk.kotlin:dynamodb:$awsSdkVersion")
@@ -51,8 +54,28 @@ dependencies {
     // kotlin reflect
     implementation(kotlin("reflect"))
 
+    // KotlinXSerialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+
+
+    // Ktor Client
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+
+
+
+
 }
 
+// To set the main class
+tasks.jar {
+    manifest {
+        attributes(
+            "Main-Class" to "request_handler.RouteServiceHandler"
+        )
+    }
+}
 
 // packaging with all the dependencies and runtime
 tasks.register<Zip>("packageJar") {

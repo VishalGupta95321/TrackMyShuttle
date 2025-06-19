@@ -4,9 +4,9 @@ import data.entity.DynamoDbModel
 import data.util.DynamoDbAttrUpdate
 
 data class  DynamoDbTransactWriteItem <T: DynamoDbModel>(
-    val updateItem: TransactionUpdateItem?,
     val putItem: T?,
     val deleteItemKey: String?,
+    val updateItem: TransactionUpdateItem?,
 ){
     companion object{
         data class TransactionUpdateItem(
@@ -15,4 +15,3 @@ data class  DynamoDbTransactWriteItem <T: DynamoDbModel>(
         )
     }
 }
-

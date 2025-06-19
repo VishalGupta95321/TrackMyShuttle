@@ -6,7 +6,8 @@ import util.RouteType
 @Serializable
 data class BusTrackingData(
     val busId: String,
-    val currentRouteId: String ,
+    val currentRouteId: String,
+    val routeCount: Int,
     val routeType: RouteType,
     val location: TimeStampedCoordinate,
     val isReturning: Boolean,

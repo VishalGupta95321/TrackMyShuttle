@@ -1,4 +1,4 @@
-package data.source
+package org.example.data.source.dynamo_db
 
 import aws.sdk.kotlin.hll.dynamodbmapper.DynamoDbPartitionKey
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
@@ -6,16 +6,13 @@ import aws.sdk.kotlin.services.dynamodb.model.*
 import aws.sdk.kotlin.services.dynamodb.waiters.waitUntilTableExists
 import aws.smithy.kotlin.runtime.ExperimentalApi
 import data.db_converters.DbItemConverter
-import data.entity.*
-import data.exceptions.DynamoDbErrors
-import data.exceptions.NoPartitionKeyFound
-import data.exceptions.NoTableNameFound
-import data.exceptions.UnsupportedEntityClass
-import data.exceptions.UnsupportedUpdateType
+import data.entity.DynamoDbModel
+import data.entity.RouteEntity
+import data.exceptions.*
 import data.model.DynamoDbTransactWriteItem
 import data.util.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlin.Throws
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalApi::class)
@@ -28,29 +25,25 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
 
     private var currentTableName: String
     private var primaryKey: String
-    //private val itemConverter = itemConverter as DbItemConverter<T>
 
-    // if the item is not available then its just returning null data TODO
-    // if item is null then error
+
     override suspend fun getItem(key: String): DynamoDbResult<T> {
         val itemKey = convertToItemKey(key)
-        val getRequest = GetItemRequest {
+        val getRequest = GetItemRequest.Companion {
             this.key = itemKey
-            consistentRead = true
             tableName = currentTableName
         }
 
         try {
             val response = databaseClient.getItem(getRequest)
-            println("Responce  ========== $response")
             response.item?.let { item ->
                 return GetBack.Success(itemConverter.deserializeToObject(item))
             }
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
-        } catch (e: DynamoDbException) {
+        }catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        } catch (e: Exception) {
+        }catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -67,11 +60,12 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
                 println("chunks: $chunks")
                 processedItems.addAll(processGetItemBatchRequest(createBatchGetItemRequest(chunks)))
             }
-        } catch (e: DynamoDbException) {
+        }catch (e: DynamoDbException){
             println("From db exec")
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        } catch (e: Exception) {
+        }
+        catch (e: Exception) {
             println("From exec")
             e.printStackTrace()
             return GetBack.Error()
@@ -79,18 +73,17 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         return GetBack.Success(processedItems)
     }
 
-
-    private fun createBatchGetItemRequest(
-        /// TODO this is throwing the error TODO *Fixed
+    private fun createBatchGetItemRequest( /// TODO this is throwing the error TODO *Fixed
         itemKeys: List<Map<String, AttributeValue>>,
     ): BatchGetItemRequest {
-        return BatchGetItemRequest {
-            requestItems = mapOf(
-                currentTableName to KeysAndAttributes {
+        return BatchGetItemRequest.Companion {
+            requestItems = mapOf<String, KeysAndAttributes>(
+                currentTableName to KeysAndAttributes.Companion {
                     keys = itemKeys
                 })
         }
     }
+
 
     private suspend fun processGetItemBatchRequest(
         batchRequest: BatchGetItemRequest,
@@ -119,10 +112,11 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             retryInterval += retryInterval
             maxRetryAttempts--
         }
+
         return processedItems
     }
 
-    // Can perform Updates on one attr at a time on different table. PUT and DELETE does not support for different table.
+
     override suspend fun transactWriteItems(
         items: List<DynamoDbTransactWriteItem<T>>
     ): BasicDynamoDbResult {
@@ -132,10 +126,10 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         try {
             itemChunks.forEach { chunk ->
                 val transactionWriteItems = chunk.map { item ->
-                    TransactWriteItem {
+                    TransactWriteItem.Companion {
                         put = item.putItem?.let { item ->
 
-                            Put {
+                            Put.Companion {
                                 tableName = currentTableName
                                 this.item = itemConverter.serializeToAttrValue(item)
                                 conditionExpression = "attribute_not_exists($primaryKey)"
@@ -143,44 +137,26 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
                         }
 
                         delete = item.deleteItemKey?.let { deleteKey ->
-                            Delete {
+                            Delete.Companion {
                                 tableName = currentTableName
                                 key = convertToItemKey(deleteKey)
                                 conditionExpression = "attribute_exists($primaryKey)"
                             }
                         }
 
-                        // one attr at time
                         update = item.updateItem?.let { updateItem ->
-
-
-                            val tableNameToUpdate = updateItem.let {
-                                when (it.attrToUpdate) {
-                                    is RouteEntityAttrUpdate -> currentTableName
-                                    is BusEntityAttrUpdate -> BUS_TABLE_NAME
-                                    else -> throw UnsupportedUpdateType()
-                                }
-                            }
-
-                            val primaryKeyNameOfTable = updateItem.let {
-                                when (it.attrToUpdate) {
-                                    is RouteEntityAttrUpdate -> primaryKey
-                                    is BusEntityAttrUpdate -> BUS_TABLE_PRIMARY_KEY
-                                    else -> throw UnsupportedUpdateType()
-                                }
-                            }
 
                             val attrName = convertToAttrValUpdate(updateItem.attrToUpdate).keys.first()
                             val attrVal = convertToAttrValUpdate(updateItem.attrToUpdate).values.first().value
                             val updateAction = convertToAttrValUpdate(updateItem.attrToUpdate).values.first().action
 
                             if (attrVal != null && updateAction != null) {
-                                Update {
-                                    key =  mapOf(primaryKeyNameOfTable to AttributeValue.S(updateItem.key))
-                                    tableName = tableNameToUpdate
-                                    conditionExpression = "attribute_exists(${primaryKeyNameOfTable})"
+                                Update.Companion {
+                                    key = mapOf(primaryKey to AttributeValue.S(updateItem.key))
+                                    tableName = currentTableName
+                                    conditionExpression = "attribute_exists(${primaryKey})"
                                     expressionAttributeNames = mapOf("#attribute" to attrName)
-                                    expressionAttributeValues =  mapOf(":value" to attrVal)
+                                    expressionAttributeValues = mapOf(":value" to attrVal)
                                     updateExpression = when (updateAction) {
                                         AttributeAction.Add -> "ADD #attribute :value"
                                         AttributeAction.Delete -> "DELETE #attribute :value"
@@ -213,21 +189,22 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
     private fun createTransactWriteItemsRequest(
         items: List<TransactWriteItem>
     ): TransactWriteItemsRequest {
-        return TransactWriteItemsRequest { transactItems = items }
+        return TransactWriteItemsRequest.Companion { transactItems = items }
     }
 
     private suspend fun processTransactWriteItemsRequest(
         transactRequest: TransactWriteItemsRequest,
-    ) {
+    ){
         databaseClient.transactWriteItems(transactRequest)
     }
+
 
     override suspend fun putItem(
         item: T,
         isUpsert: Boolean,
     ): BasicDynamoDbResult {
         val itemValues = itemConverter.serializeToAttrValue(item)
-        val putRequest = PutItemRequest {
+        val putRequest = PutItemRequest.Companion {
             tableName = currentTableName
             this.item = itemValues
             conditionExpression = if (isUpsert) "attribute_exists($primaryKey)" else "attribute_not_exists($primaryKey)"
@@ -235,15 +212,14 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         try {
             databaseClient.putItem(putRequest)
             return GetBack.Success()
-        } catch (e: ConditionalCheckFailedException) {
-         //   e.printStackTrace()
-            println(" CONDITION fail from PUT")
-            if (isUpsert) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
+        } catch (e: ConditionalCheckFailedException){
+            e.printStackTrace()
+            if(isUpsert) return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
             return GetBack.Error(DynamoDbErrors.ItemAlreadyExists)
-        } catch (e: DynamoDbException) {
+        } catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        } catch (e: Exception) {
+        }catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -251,7 +227,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
 
     override suspend fun deleteItem(key: String): BasicDynamoDbResult {
         val itemKey = convertToItemKey(key)
-        val deleteRequest = DeleteItemRequest {
+        val deleteRequest = DeleteItemRequest.Companion {
             tableName = currentTableName
             this.key = itemKey
             conditionExpression = "attribute_exists($primaryKey)"
@@ -259,13 +235,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         try {
             databaseClient.deleteItem(deleteRequest)
             return GetBack.Success()
-        } catch (e: ConditionalCheckFailedException) {
+        }catch (e: ConditionalCheckFailedException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.ItemDoesNotExists)
-        } catch (e: DynamoDbException) {
+        }catch (e: DynamoDbException){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        } catch (e: Exception) {
+        }catch (e: Exception) {
             e.printStackTrace()
             return GetBack.Error()
         }
@@ -292,7 +268,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
                 else -> throw UnsupportedEntityClass()
             }
 
-            val updateRequest = UpdateItemRequest {
+            val updateRequest = UpdateItemRequest.Companion {
                 tableName = currentTableName
                 key = itemKey
                 //conditionExpression = "attribute_exists($primaryKey)" TODO("")
@@ -302,19 +278,19 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
             databaseClient.updateItem(updateRequest)
             return GetBack.Success()
 
-        } catch (e: DynamoDbException) {
+        }catch (e: DynamoDbException){
             e.printStackTrace()
-            if (e.localizedMessage == "Type mismatch for attribute to update")
+            if(e.localizedMessage == "Type mismatch for attribute to update")
                 return GetBack.Error(DynamoDbErrors.TypeMismatchForAttribute)
 
             return GetBack.Error(DynamoDbErrors.UndefinedError)
-        } catch (e: UnsupportedEntityClass) {
+        }catch (e: UnsupportedEntityClass){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UnsupportedEntityClass)
-        } catch (e: UnsupportedUpdateType) {
+        }catch (e: UnsupportedUpdateType){
             e.printStackTrace()
             return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
-        } catch (e: Exception) {
+        }catch (e: Exception) {
             return GetBack.Error(DynamoDbErrors.UnsupportedUpdateType)
         }
     }
@@ -326,7 +302,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
     ): Map<String, AttributeValueUpdate> {
 
         return mapOf(
-            attrName to AttributeValueUpdate {
+            attrName to AttributeValueUpdate.Companion {
                 value = attrValue
                 action = updateAction
             }
@@ -338,29 +314,13 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         update: DynamoDbAttrUpdate,
     ): Map<String, AttributeValueUpdate> {
         return when (update) {
-            is RouteEntityAttrUpdate -> {
-                when (update) {
-                    is RouteEntityAttrUpdate.UpdateBusIds -> convertToAttrValUpdate(
-                        RouteEntityAttributes.BUS_IDS,
-                        AttributeValue.Ss(update.value),
-                        update.action
-                    )
-                }
+            is RouteEntityAttrUpdate ->{
+                throw UnsupportedUpdateType()
             }
-
-            is BusEntityAttrUpdate -> {
-                when (update) {
-                    is BusEntityAttrUpdate.UpdateStopIds -> convertToAttrValUpdate(
-                        BUS_TABLE_STOP_IDS_ATTRIBUTE_NAME,
-                        AttributeValue.Ss(update.value),
-                        update.action
-                    )
-                }
-            }
-
             else -> throw UnsupportedUpdateType()
         }
     }
+
 
 
     private fun convertToItemKey(
@@ -373,29 +333,38 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
     private suspend fun createTable(
         name: String,
         partitionKey: String,
+        sortKey: String,
     ) {
         val attDef = listOf(
-            AttributeDefinition {
+            AttributeDefinition.Companion {
                 attributeName = partitionKey
+                attributeType = ScalarAttributeType.S
+            },
+            AttributeDefinition.Companion {
+                attributeName = sortKey
                 attributeType = ScalarAttributeType.S
             }
         )
 
-        val tableKeySchemaVal = listOf(
-            KeySchemaElement {
-                attributeName = partitionKey
-                keyType = KeyType.Hash
-            }
-        )
 
-        val provisionedVal = ProvisionedThroughput {
+        val keySchemaVal = KeySchemaElement.Companion {
+            attributeName = partitionKey
+            keyType = KeyType.Hash
+        }
+
+        val sortKeySchemaVal = KeySchemaElement.Companion {
+            attributeName = sortKey
+            keyType = KeyType.Range
+        }
+
+        val provisionedVal = ProvisionedThroughput.Companion {
             readCapacityUnits = 10
             writeCapacityUnits = 10
-        }  /// Fixme: May cause some problems later
+        }
 
-        val createTableRequest = CreateTableRequest {
+        val createTableRequest = CreateTableRequest.Companion {
             attributeDefinitions = attDef
-            keySchema = tableKeySchemaVal
+            keySchema = listOf(keySchemaVal, sortKeySchemaVal)
             provisionedThroughput = provisionedVal
             tableName = name
         }
@@ -421,7 +390,7 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
                 return it == tableName
             }
             return false
-        } catch (e: Exception) {
+        }catch (e: Exception) {
             return false
         }
     }
@@ -447,11 +416,6 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
 
 
     companion object {
-
-        const val BUS_TABLE_NAME = "BUS_TABLE"
-        const val BUS_TABLE_PRIMARY_KEY = "busId"
-        const val BUS_TABLE_STOP_IDS_ATTRIBUTE_NAME = "stopIds"
-
         const val BATCH_REQUEST_RETRY_INTERVAL = 300L
         const val MAX_RETRY_ATTEMPTS = 3
         const val MAX_GET_ITEM_BATCH_LIMIT = 80
@@ -463,8 +427,3 @@ class DynamoDbDataSourceImpl<T : DynamoDbModel>(
         primaryKey = getTablePartitionKey()
     }
 }
-
-
-/// Use annotations to prepare schema for dynamo db
-// TODO: Use indices
-

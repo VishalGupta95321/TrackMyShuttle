@@ -4,7 +4,6 @@ import aws.sdk.kotlin.hll.dynamodbmapper.values.ValueConverter
 import aws.sdk.kotlin.services.dynamodb.model.AttributeValue
 import aws.smithy.kotlin.runtime.ExperimentalApi
 import data.model.BusStatus
-import data.model.BusStatus.Companion.fromValue
 import kotlinx.serialization.json.Json
 import org.koin.java.KoinJavaComponent.inject
 import kotlin.text.toInt

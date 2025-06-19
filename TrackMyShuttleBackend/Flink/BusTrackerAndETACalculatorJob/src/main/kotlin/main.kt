@@ -461,15 +461,17 @@ fun mainn(){
 /// TESTING FLINK JOB
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-private const val BUS_LOCATION_DATA_TOPIC = "BUS_LOCATION_DATA"
-private const val BUS_DATA_TOPIC = "BUS_DATA"
-private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
-private const val BUS_STOP_DATA_TOPIC = "BUS_STOP_DATA"
+//// Kafka Source Topics
+private const val BUS_LOCATION_DATA_TOPIC = "bus-location-data"
+private const val BUS_DATA_TOPIC = "bus-data"
+private const val BUS_STOP_DATA_TOPIC = "bus-stop-data"
+private const val BUS_ROUTES_DATA_TOPIC = "bus-routes-data"
 
 
 /// Kafka Sink Topics
-private const val BUS_ETA_DATA_TOPIC = "BUS_ETA_DATA"
-private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
+private const val BUS_ETA_DATA_TOPIC = "bus-data"
+private const val BUS_TRACKING_DATA_TOPIC = "bus-tracking-data"
+private const val BUS_UPDATES_TOPIC = "bus-updates"
 
 
 object KafkaBusSender {            // keep one instance
@@ -641,7 +643,7 @@ fun main(){
         )
     }
 
-    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates.reversed(),stopsData)
+    var r  =  generateRecentCoordinatesFromSegment(routeS0S1.coordinates,stopsData)
 
     println(r)
 
@@ -650,15 +652,15 @@ fun main(){
 ////
 
    //runBlocking {
-        stopsData.forEach { stop->
-           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
-        }
-        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
-        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
+//        stopsData.forEach { stop->
+//           p.send(BUS_STOP_DATA_TOPIC,json.encodeToString(stop))
+//        }
+//        p.send(BUS_DATA_TOPIC,json.encodeToString(busData)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS0S1)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS1S2)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS2S3)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS3S4)) /// sent
+//        p.send(BUS_ROUTES_DATA_TOPIC,json.encodeToString(routeS4S5)) /// sent
   //  }
 
 

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="b81a600c-6874-4758-83d5-b43beebf596e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/db_converters/CoordinateValueConverter.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/db_converters/DurationValueConverter.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/model/Coordinate.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/model/mapbox/DirectionsRequest.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/model/mapbox/DirectionsResponse.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/source/mapbox/MapboxClient.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/source/mapbox/MapboxClientImpl.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/data/util/RouteType.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/db_converters/BusStatusValueConverter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/db_converters/BusStatusValueConverter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/db_converters/RouteTypeValueConverter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/db_converters/RouteTypeValueConverter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/model/BusStatus.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/model/BusStatus.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/respository/BusRepositoryImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/respository/BusRepositoryImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/source/DynamoDbDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../BusService/src/main/kotlin/data/source/DynamoDbDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BusStopService/src/main/kotlin/data/source/DynamoDbDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../BusStopService/src/main/kotlin/data/source/DynamoDbDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/app/BusTrackerAndETACalculatorApp.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/app/BusTrackerAndETACalculatorApp.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/models/BusLocationWithMetadata.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/models/BusLocationWithMetadata.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/models/BusTrackingData.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/models/BusTrackingData.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/models/Route.kt" beforeDir="false" afterPath="$PROJECT_DIR$/../Flink/BusTrackerAndETACalculatorJob/src/main/kotlin/models/Route.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/controller/RouteController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/controller/RouteControllerImpl.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/db_converters/RouteItemConverter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/db_converters/RouteItemConverter.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/entity/RouteEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/entity/RouteEntity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/DynamoDbErrors.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/DynamoDbErrors.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/NoTableNameFound.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/NoTableNameFound.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/RouteRepoErrors.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/RouteRepoErrors.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/exceptions/UnsupportedScanRequest.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/model/BasicRouteDetails.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/model/DynamoDbTransactWriteItem.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/model/DynamoDbTransactWriteItem.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/model/Route.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/model/Route.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/respository/RouteRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/respository/RouteRepository.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/respository/RouteRepositoryImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/respository/RouteRepositoryImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/source/DynamoDbDataSource.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/source/dynamo_db/DynamoDbDataSource.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/source/DynamoDbDataSourceImpl.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/source/dynamo_db/DynamoDbDataSourceImpl.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/util/DynamoDbAttrUpdate.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/util/DynamoDbAttrUpdate.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/data/util/GetBack.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/data/util/GetBack.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/di/MainModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/di/MainModule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/exceptions/RouteControllerExceptions.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/request/GetBusIdsByRouteId.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/request/UpdateRoutesForBusIdsRequest.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/response/BusIdsResponse.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/response/HttpResponse.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/model/response/RouteControllerResponse.kt" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="package-info" />
+        <option value="Kotlin File" />
+        <option value="Kotlin Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="KotlinCodeInsightWorkspaceSettings">
+    <option name="optimizeImportsOnTheFly" value="true" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2ydIjYbZDuaNTZ2DINqrkxrn1tz" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Gradle.Build RouteService.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/2024/KMM_Projects/TrackMyShuttleApp/TrackMyShuttleBackend/RouteService/src/main/kotlin/di&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/kotlin/di" />
+      <recent name="$PROJECT_DIR$/src/main/kotlin/data/model" />
+      <recent name="$PROJECT_DIR$/src/main/kotlin" />
+    </key>
+    <key name="CopyKotlinDeclarationDialog.RECENTS_KEY">
+      <recent name="data.util" />
+    </key>
+    <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
+      <recent name="org.example.data.model.mapbox" />
+      <recent name="org.example.data.source.mapbox" />
+      <recent name="org.example.data.source.dynamo_db" />
+      <recent name="org.example.data.util" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fdfe4dae3a2d-intellij.indexing.shared.core-IU-243.22562.145" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-IU-243.22562.145" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="b81a600c-6874-4758-83d5-b43beebf596e" name="Changes" comment="" />
+      <created>1750158160101</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1750158160101</updated>
+      <workItem from="1750158161194" duration="4691000" />
+      <workItem from="1750162872729" duration="5278000" />
+      <workItem from="1750351238820" duration="333000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

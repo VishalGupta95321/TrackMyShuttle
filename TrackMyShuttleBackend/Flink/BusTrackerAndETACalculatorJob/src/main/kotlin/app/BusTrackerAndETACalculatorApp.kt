@@ -28,16 +28,16 @@ import java.time.Duration
 
 
 //// Kafka Source Topics
-private const val BUS_LOCATION_DATA_TOPIC = "BUS_LOCATION_DATA"
-private const val BUS_DATA_TOPIC = "BUS_DATA"
-private const val BUS_STOP_DATA_TOPIC = "BUS_STOP_DATA"
-private const val BUS_ROUTES_DATA_TOPIC = "BUS_ROUTES_DATA"
+private const val BUS_LOCATION_DATA_TOPIC = "bus-location-data"
+private const val BUS_DATA_TOPIC = "bus-data"
+private const val BUS_STOP_DATA_TOPIC = "bus-stop-data"
+private const val BUS_ROUTES_DATA_TOPIC = "bus-routes-data"
 
 
 /// Kafka Sink Topics
-private const val BUS_ETA_DATA_TOPIC = "BUS_ETA_DATA"
-private const val BUS_TRACKING_DATA_TOPIC = "BUS_TRACKING_DATA"
-private const val BUS_UPDATES_TOPIC = "BUS_UPDATES"
+private const val BUS_ETA_DATA_TOPIC = "bus-data"
+private const val BUS_TRACKING_DATA_TOPIC = "bus-tracking-data"
+private const val BUS_UPDATES_TOPIC = "bus-updates"
 
 
 private const val KAFKA_BROKER = "192.168.29.70:9092"

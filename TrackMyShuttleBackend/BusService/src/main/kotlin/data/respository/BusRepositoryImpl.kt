@@ -6,7 +6,6 @@ import data.exceptions.DynamoDbErrors
 import data.model.BasicBusDetails
 import data.model.Bus
 import data.model.BusStatus
-import data.model.BusStatus.Companion.fromValue
 import data.model.DynamoDbTransactWriteItem
 import data.model.DynamoDbTransactWriteItem.Companion.TransactionUpdateItem
 import data.model.StopIdsWithWaitTime
@@ -75,7 +74,7 @@ class BusRepositoryImpl(
         status: BusStatus
     ): BasicBusRepoResult {
         val result = dynamoDbSource.updateItemAttr(
-            update = BusEntityAttrUpdate.UpdateBusStatus(fromValue(status.value)),
+            update = BusEntityAttrUpdate.UpdateBusStatus(status),
             keyVal = busId
         )
         return when (result) {

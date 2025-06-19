@@ -20,10 +20,11 @@ data class BusLocationWithMetadata(
 fun BusLocationWithMetadata.toBusTrackingData() = BusTrackingData(
     busId = busId,
     currentRouteId = currentRoute.routeId,
+    routeCount = currentRoute.routeCount,
     routeType = routeType,
     location = location,
     isReturning = isReturning,
     lastPassedStopId = lastPassedStop.second.stopId,
     nextStopId = nextStop.stopId,
-    currentStopId = currentStop?.stopId
+    currentStopId = currentStop?.stopId,
 )

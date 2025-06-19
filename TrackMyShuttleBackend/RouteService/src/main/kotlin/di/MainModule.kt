@@ -1,24 +1,22 @@
-package di
+package org.example.di
 
 import aws.sdk.kotlin.services.dynamodb.DynamoDbClient
-import com.google.gson.Gson
-import controller.RouteController
-import controller.RouteControllerImpl
 import data.db_converters.RouteItemConverter
 import data.entity.RouteEntity
-import data.respository.RouteRepository
-import data.respository.RouteRepositoryImpl
-import data.source.DynamoDbDataSource
-import data.source.DynamoDbDataSourceImpl
+import org.example.data.source.dynamo_db.DynamoDbDataSource
+import org.example.data.source.dynamo_db.DynamoDbDataSourceImpl
 import data.util.ClassIntrospector
+import io.ktor.client.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
-
-val MainModule = module  {
+val MainModule = module {
 
     single<DynamoDbClient> {
         val client = DynamoDbClient { region = "ap-south-1" }
@@ -34,13 +32,13 @@ val MainModule = module  {
         )
     }
 
-    single<RouteRepository> {
-        RouteRepositoryImpl(get())
-    }
+//    single<RouteRepository> {
+//        BusRepositoryImpl(Scope.get())
+//    }
 
-    single<RouteController>{
-        RouteControllerImpl(get())
-    }
+//    Module.single<BusController> {
+//        BusControllerImpl(Scope.get())
+//    }
 
     single<CoroutineScope>() {
         named("IOSupervisorCoroutineScope")
@@ -52,7 +50,15 @@ val MainModule = module  {
         CoroutineScope(Dispatchers.Default + SupervisorJob())
     }
 
-    single<Gson>{
-        Gson()
+    single<Json> {
+        Json { ignoreUnknownKeys = true }
+    }
+
+    single<HttpClient> {
+        HttpClient(){
+            install(ContentNegotiation) {
+                json()
+            }
+        }
     }
 }
