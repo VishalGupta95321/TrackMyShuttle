@@ -7,3 +7,6 @@ TrackMyShuttleApp/TrackMyShuttleIOT/.DS_Store
 TrackMyShuttleApp/TrackMyShuttleIOT/TrackMyShuttleGPSTracker/.DS_Store
 TrackMyShuttleApp/TrackMyShuttleIOT/TrackMyShuttleGPSTracker/gps_tracker_main/.DS_Store
 TrackMyShuttleApp/TrackMyShuttleBackend/.DS_Store
+TrackMyShuttleApp/TrackMyShuttleBackend/Route_Service
+TrackMyShuttleApp/TrackMyShuttleBackend/BusDataService
+
